@@ -36,6 +36,10 @@ class KeyMetadata:
         )
 
 
+# ============================================================
+# X25519 Models
+# ============================================================
+
 @dataclass(frozen=True)
 class X25519PublicKeyModel:
     """Immutable container for an X25519 public key (32 raw bytes)."""
@@ -106,18 +110,145 @@ class X25519PrivateKeyModel:
         )
 
 
+# ============================================================
+# ML-KEM-768 Models
+# ============================================================
+
+@dataclass(frozen=True)
+class MLKEMPublicKeyModel:
+    """
+    Immutable container for an ML-KEM-768 public key (1184 raw bytes).
+
+    Distributed to senders who will encapsulate a shared secret for this recipient.
+    """
+
+    raw_bytes: bytes
+    metadata: KeyMetadata
+
+    def __repr__(self) -> str:
+        return (
+            f"MLKEMPublicKeyModel(key_id={self.metadata.key_id!r}, "
+            f"bytes=<{len(self.raw_bytes)} bytes>)"
+        )
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "key_type": "public",
+            "key_id": self.metadata.key_id,
+            "algorithm": self.metadata.algorithm,
+            "created_at": self.metadata.created_at.isoformat(),
+            "raw_bytes_b64": base64.b64encode(self.raw_bytes).decode(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, str]) -> "MLKEMPublicKeyModel":
+        return cls(
+            raw_bytes=base64.b64decode(data["raw_bytes_b64"]),
+            metadata=KeyMetadata(
+                key_id=data["key_id"],
+                algorithm=data["algorithm"],
+                created_at=datetime.fromisoformat(data["created_at"]),
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class MLKEMPrivateKeyModel:
+    """
+    Immutable container for an ML-KEM-768 secret key (2400 raw bytes).
+
+    SECURITY: raw_bytes is hidden from __repr__ and __str__.
+    Store with 0o600 permissions; never log or print.
+    """
+
+    raw_bytes: bytes
+    metadata: KeyMetadata
+
+    def __repr__(self) -> str:
+        return f"MLKEMPrivateKeyModel(key_id={self.metadata.key_id!r}, bytes=<REDACTED>)"
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "key_type": "private",
+            "key_id": self.metadata.key_id,
+            "algorithm": self.metadata.algorithm,
+            "created_at": self.metadata.created_at.isoformat(),
+            "raw_bytes_b64": base64.b64encode(self.raw_bytes).decode(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, str]) -> "MLKEMPrivateKeyModel":
+        return cls(
+            raw_bytes=base64.b64decode(data["raw_bytes_b64"]),
+            metadata=KeyMetadata(
+                key_id=data["key_id"],
+                algorithm=data["algorithm"],
+                created_at=datetime.fromisoformat(data["created_at"]),
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class MLKEMCiphertextModel:
+    """
+    Immutable container for an ML-KEM-768 ciphertext (1088 raw bytes).
+
+    Produced by the sender during encapsulation.
+    Transmitted to the recipient so they can decapsulate to recover the shared secret.
+    Safe to store and transmit; does not reveal the shared secret.
+    """
+
+    raw_bytes: bytes
+    metadata: KeyMetadata
+
+    def __repr__(self) -> str:
+        return (
+            f"MLKEMCiphertextModel(key_id={self.metadata.key_id!r}, "
+            f"bytes=<{len(self.raw_bytes)} bytes>)"
+        )
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "key_type": "ciphertext",
+            "key_id": self.metadata.key_id,
+            "algorithm": self.metadata.algorithm,
+            "created_at": self.metadata.created_at.isoformat(),
+            "raw_bytes_b64": base64.b64encode(self.raw_bytes).decode(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, str]) -> "MLKEMCiphertextModel":
+        return cls(
+            raw_bytes=base64.b64decode(data["raw_bytes_b64"]),
+            metadata=KeyMetadata(
+                key_id=data["key_id"],
+                algorithm=data["algorithm"],
+                created_at=datetime.fromisoformat(data["created_at"]),
+            ),
+        )
+
+
+# ============================================================
+# Shared Secret (algorithm-agnostic)
+# ============================================================
+
 @dataclass(frozen=True)
 class SharedSecretModel:
     """
-    Immutable container for a raw ECDH shared secret (32 bytes).
+    Immutable container for a raw shared secret (32 bytes).
+
+    Used for both X25519-ECDH and ML-KEM-768 outputs.
+    Both secrets are then combined and fed into HKDF (Phase 4).
 
     This object must NEVER be persisted to disk or written to logs.
-    Pass it directly to the HKDF layer and discard immediately after.
+    Discard immediately after passing to HKDF.
 
     Note: `bytes` is immutable in CPython, so in-memory wiping is not
-    possible here. For higher-assurance environments, convert to a
-    mutable `bytearray` and use `src.utils.secure_bytes.wipe()` before
-    dropping the reference.
+    possible here. Use `src.utils.secure_bytes.wipe_bytes_copy()` if
+    you need a wipeable copy.
     """
 
     raw_bytes: bytes

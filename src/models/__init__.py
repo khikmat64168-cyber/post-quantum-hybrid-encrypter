@@ -3,6 +3,9 @@
 from src.models.config_models import AppConfig, CryptoConfig, LoggingConfig, StorageConfig
 from src.models.key_models import (
     KeyMetadata,
+    MLKEMCiphertextModel,
+    MLKEMPrivateKeyModel,
+    MLKEMPublicKeyModel,
     SharedSecretModel,
     X25519PrivateKeyModel,
     X25519PublicKeyModel,
@@ -16,5 +19,8 @@ __all__ = [
     "KeyMetadata",
     "X25519PrivateKeyModel",
     "X25519PublicKeyModel",
+    "MLKEMPrivateKeyModel",
+    "MLKEMPublicKeyModel",
+    "MLKEMCiphertextModel",
     "SharedSecretModel",
 ]
