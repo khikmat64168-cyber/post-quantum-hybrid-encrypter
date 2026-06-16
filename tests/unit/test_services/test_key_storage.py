@@ -28,8 +28,8 @@ class TestSaveAndLoad:
         self, service: X25519Service, storage: KeyStorage
     ) -> None:
         _, pub = service.generate_keypair("alice")
-        path = storage.save_public_key(pub)
-        loaded = storage.load_public_key(path)
+        path = storage.save_x25519_public_key(pub)
+        loaded = storage.load_x25519_public_key(path)
         assert loaded.raw_bytes == pub.raw_bytes
         assert loaded.metadata.key_id == "alice"
 
@@ -37,8 +37,8 @@ class TestSaveAndLoad:
         self, service: X25519Service, storage: KeyStorage
     ) -> None:
         priv, _ = service.generate_keypair("alice")
-        path = storage.save_private_key(priv)
-        loaded = storage.load_private_key(path)
+        path = storage.save_x25519_private_key(priv)
+        loaded = storage.load_x25519_private_key(path)
         assert loaded.raw_bytes == priv.raw_bytes
         assert loaded.metadata.key_id == "alice"
 
@@ -46,10 +46,10 @@ class TestSaveAndLoad:
         self, service: X25519Service, storage: KeyStorage
     ) -> None:
         priv, pub = service.generate_keypair("bob")
-        priv_path = storage.save_private_key(priv)
-        pub_path = storage.save_public_key(pub)
-        assert priv_path.name == "bob_private.json"
-        assert pub_path.name == "bob_public.json"
+        priv_path = storage.save_x25519_private_key(priv)
+        pub_path = storage.save_x25519_public_key(pub)
+        assert priv_path.name == "bob_x25519_private.json"
+        assert pub_path.name == "bob_x25519_public.json"
 
 
 @pytest.mark.unit
@@ -58,7 +58,7 @@ class TestFilePermissions:
         self, service: X25519Service, storage: KeyStorage
     ) -> None:
         priv, _ = service.generate_keypair("alice")
-        path = storage.save_private_key(priv)
+        path = storage.save_x25519_private_key(priv)
         file_mode = stat.S_IMODE(os.stat(path).st_mode)
         assert file_mode == 0o600, f"Expected 0o600, got {oct(file_mode)}"
 
@@ -66,7 +66,7 @@ class TestFilePermissions:
         self, service: X25519Service, storage: KeyStorage
     ) -> None:
         _, pub = service.generate_keypair("alice")
-        path = storage.save_public_key(pub)
+        path = storage.save_x25519_public_key(pub)
         file_mode = stat.S_IMODE(os.stat(path).st_mode)
         assert file_mode == 0o644, f"Expected 0o644, got {oct(file_mode)}"
 
@@ -77,7 +77,7 @@ class TestFileFormat:
         self, service: X25519Service, storage: KeyStorage
     ) -> None:
         priv, _ = service.generate_keypair("alice")
-        path = storage.save_private_key(priv)
+        path = storage.save_x25519_private_key(priv)
         data = json.loads(path.read_text())
         assert "raw_bytes_b64" in data
         assert "algorithm" in data
@@ -87,7 +87,7 @@ class TestFileFormat:
         self, service: X25519Service, storage: KeyStorage
     ) -> None:
         priv, _ = service.generate_keypair("alice")
-        path = storage.save_private_key(priv)
+        path = storage.save_x25519_private_key(priv)
         data = json.loads(path.read_text())
         assert data["key_type"] == "private"
 
@@ -95,7 +95,7 @@ class TestFileFormat:
         self, service: X25519Service, storage: KeyStorage
     ) -> None:
         _, pub = service.generate_keypair("alice")
-        path = storage.save_public_key(pub)
+        path = storage.save_x25519_public_key(pub)
         data = json.loads(path.read_text())
         assert data["key_type"] == "public"
 
@@ -106,21 +106,21 @@ class TestExistenceChecks:
         self, service: X25519Service, storage: KeyStorage
     ) -> None:
         priv, _ = service.generate_keypair("charlie")
-        assert not storage.private_key_exists("charlie")
-        storage.save_private_key(priv)
-        assert storage.private_key_exists("charlie")
+        assert not storage.x25519_private_key_exists("charlie")
+        storage.save_x25519_private_key(priv)
+        assert storage.x25519_private_key_exists("charlie")
 
     def test_public_key_exists_after_save(
         self, service: X25519Service, storage: KeyStorage
     ) -> None:
         _, pub = service.generate_keypair("charlie")
-        assert not storage.public_key_exists("charlie")
-        storage.save_public_key(pub)
-        assert storage.public_key_exists("charlie")
+        assert not storage.x25519_public_key_exists("charlie")
+        storage.save_x25519_public_key(pub)
+        assert storage.x25519_public_key_exists("charlie")
 
     def test_load_missing_key_raises(self, storage: KeyStorage) -> None:
         with pytest.raises(FileNotFoundError):
-            storage.load_public_key(Path("/nonexistent/key.json"))
+            storage.load_x25519_public_key(Path("/nonexistent/key.json"))
 
 
 @pytest.mark.unit
