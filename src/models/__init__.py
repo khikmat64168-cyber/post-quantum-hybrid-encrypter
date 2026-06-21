@@ -10,7 +10,7 @@ from src.models.key_models import (
     X25519PrivateKeyModel,
     X25519PublicKeyModel,
 )
-from src.models.payload_models import HybridKeyMaterial
+from src.models.payload_models import AESPayload, HybridKeyMaterial
 
 __all__ = [
     "AppConfig",
@@ -25,4 +25,5 @@ __all__ = [
     "MLKEMCiphertextModel",
     "SharedSecretModel",
     "HybridKeyMaterial",
+    "AESPayload",
 ]
