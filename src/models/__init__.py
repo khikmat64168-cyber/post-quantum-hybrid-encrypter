@@ -10,6 +10,7 @@ from src.models.key_models import (
     X25519PrivateKeyModel,
     X25519PublicKeyModel,
 )
+from src.models.packet_models import EncryptedPacket, PacketMetadata
 from src.models.payload_models import AESPayload, HybridKeyMaterial
 
 __all__ = [
@@ -26,4 +27,6 @@ __all__ = [
     "SharedSecretModel",
     "HybridKeyMaterial",
     "AESPayload",
+    "PacketMetadata",
+    "EncryptedPacket",
 ]
