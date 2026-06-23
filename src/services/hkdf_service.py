@@ -111,3 +111,45 @@ class HKDFService:
         Passing it here reproduces the identical master_key the sender derived.
         """
         return self.derive(classical_secret, pq_secret, salt=salt)
+
+    def derive_hybrid(
+        self,
+        classical_secret: SharedSecretModel,
+        pq_secret: SharedSecretModel | None,
+        salt: bytes | None = None,
+    ) -> HybridKeyMaterial:
+        """
+        Derive a master key with an optional ML-KEM secret.
+
+        When pq_secret is None (ML-KEM unavailable), IKM = classical_secret only.
+        When pq_secret is provided, IKM = classical_secret || pq_secret (64 bytes).
+
+        The algorithm label in the packet records which mode was used so the
+        decryption path can reproduce the same IKM.
+        """
+        if pq_secret is not None:
+            return self.derive(classical_secret, pq_secret, salt=salt)
+
+        log.info(
+            "hkdf_service.derive_hybrid.x25519_only",
+            salt_provided=salt is not None,
+        )
+
+        if len(classical_secret.raw_bytes) != 32:
+            raise ValueError(
+                f"X25519 shared secret must be 32 bytes, "
+                f"got {len(classical_secret.raw_bytes)}"
+            )
+
+        if salt is None:
+            salt = _hkdf.generate_salt()
+
+        master_key = _hkdf.derive(
+            ikm=classical_secret.raw_bytes,
+            salt=salt,
+            info=_INFO,
+            length=_KEY_LENGTH,
+        )
+
+        log.info("hkdf_service.derive_hybrid.complete", master_key_length=len(master_key))
+        return HybridKeyMaterial(master_key=master_key, salt=salt, info=_INFO)
