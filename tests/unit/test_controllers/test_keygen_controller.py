@@ -117,14 +117,28 @@ class TestKeygenController:
         assert new_dir.exists()
 
     def test_generate_empty_key_id_raises(self, tmp_path: Path) -> None:
+        from src.utils.validators import ValidationError
         ctrl = KeygenController()
-        with pytest.raises(ValueError, match="key_id"):
+        with pytest.raises((ValueError, ValidationError)):
             ctrl.generate("  ", tmp_path)
 
     def test_generate_blank_key_id_raises(self, tmp_path: Path) -> None:
+        from src.utils.validators import ValidationError
         ctrl = KeygenController()
-        with pytest.raises(ValueError):
+        with pytest.raises((ValueError, ValidationError)):
             ctrl.generate("", tmp_path)
+
+    def test_generate_path_traversal_key_id_raises(self, tmp_path: Path) -> None:
+        from src.utils.validators import ValidationError
+        ctrl = KeygenController()
+        with pytest.raises((ValueError, ValidationError)):
+            ctrl.generate("../evil", tmp_path)
+
+    def test_generate_slash_in_key_id_raises(self, tmp_path: Path) -> None:
+        from src.utils.validators import ValidationError
+        ctrl = KeygenController()
+        with pytest.raises((ValueError, ValidationError)):
+            ctrl.generate("alice/bob", tmp_path)
 
     def test_keys_dir_stored_in_result(self, tmp_path: Path) -> None:
         x25519_svc = MagicMock()

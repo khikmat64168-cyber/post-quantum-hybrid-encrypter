@@ -141,6 +141,17 @@ class TestDecryptController:
         assert result.input_path == packet_file
         assert result.output_path == out
 
+    def test_decrypt_nonexistent_output_parent_raises(self, keys_dir: Path, packet_file: Path, tmp_path: Path) -> None:
+        from src.utils.validators import ValidationError
+        ctrl = DecryptController()
+        with pytest.raises((FileNotFoundError, ValidationError)):
+            ctrl.decrypt_file(
+                input_path=packet_file,
+                output_path=tmp_path / "no_such_dir" / "out.txt",
+                recipient_key_id="bob",
+                keys_dir=keys_dir,
+            )
+
     def test_decrypt_result_stores_algorithm(self, keys_dir: Path, packet_file: Path, tmp_path: Path) -> None:
         orchestrator = MagicMock()
         orchestrator.decrypt.return_value = b"data"

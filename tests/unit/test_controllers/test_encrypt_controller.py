@@ -159,6 +159,32 @@ class TestEncryptController:
                 keys_dir=tmp_path,
             )
 
+    def test_encrypt_empty_file_raises(self, keys_dir: Path, tmp_path: Path) -> None:
+        from src.utils.validators import ValidationError
+        empty = tmp_path / "empty.txt"
+        empty.write_bytes(b"")
+        ctrl = EncryptController()
+        with pytest.raises((ValueError, ValidationError), match="empty"):
+            ctrl.encrypt_file(
+                input_path=empty,
+                output_path=tmp_path / "out.enc",
+                sender_key_id="alice",
+                recipient_key_id="bob",
+                keys_dir=keys_dir,
+            )
+
+    def test_encrypt_nonexistent_output_parent_raises(self, keys_dir: Path, input_file: Path, tmp_path: Path) -> None:
+        from src.utils.validators import ValidationError
+        ctrl = EncryptController()
+        with pytest.raises((FileNotFoundError, ValidationError)):
+            ctrl.encrypt_file(
+                input_path=input_file,
+                output_path=tmp_path / "no_such_dir" / "out.enc",
+                sender_key_id="alice",
+                recipient_key_id="bob",
+                keys_dir=keys_dir,
+            )
+
     def test_result_is_not_hybrid_without_mlkem(self, keys_dir: Path, input_file: Path) -> None:
         orchestrator = MagicMock()
         orchestrator.encrypt.return_value = _dummy_packet()
