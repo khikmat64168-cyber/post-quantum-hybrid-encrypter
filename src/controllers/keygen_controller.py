@@ -14,6 +14,7 @@ from src.services.mlkem_service import MLKEMService
 from src.services.x25519_service import X25519Service
 from src.storage.key_storage import KeyStorage
 from src.utils.logging_config import get_logger
+from src.utils.validators import ValidationError, validate_key_id
 
 log = get_logger(__name__)
 
@@ -59,9 +60,7 @@ class KeygenController:
         ------
         ValueError : If key_id is blank.
         """
-        key_id = key_id.strip()
-        if not key_id:
-            raise ValueError("key_id must not be empty")
+        key_id = validate_key_id(key_id)
 
         storage = KeyStorage(keys_dir)
 

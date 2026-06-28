@@ -21,6 +21,7 @@ from src.models.key_models import (
     X25519PublicKeyModel,
 )
 from src.utils.logging_config import get_logger
+from src.utils.validators import validate_key_id
 
 log = get_logger(__name__)
 
@@ -121,9 +122,11 @@ class KeyStorage:
     # ------------------------------------------------------------------
 
     def x25519_private_key_path(self, key_id: str) -> Path:
+        validate_key_id(key_id)
         return self._dir / f"{key_id}_x25519_private.json"
 
     def x25519_public_key_path(self, key_id: str) -> Path:
+        validate_key_id(key_id)
         return self._dir / f"{key_id}_x25519_public.json"
 
     def x25519_private_key_exists(self, key_id: str) -> bool:
@@ -137,9 +140,11 @@ class KeyStorage:
     # ------------------------------------------------------------------
 
     def mlkem_private_key_path(self, key_id: str) -> Path:
+        validate_key_id(key_id)
         return self._dir / f"{key_id}_mlkem_private.json"
 
     def mlkem_public_key_path(self, key_id: str) -> Path:
+        validate_key_id(key_id)
         return self._dir / f"{key_id}_mlkem_public.json"
 
     def mlkem_private_key_exists(self, key_id: str) -> bool:

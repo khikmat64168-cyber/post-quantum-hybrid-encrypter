@@ -96,10 +96,12 @@ def keygen_cmd(name: str, keys_dir: str) -> None:
     """Generate a hybrid X25519 + ML-KEM-768 key pair."""
     from src.controllers.keygen_controller import KeygenController  # noqa: PLC0415
 
+    from src.utils.validators import ValidationError  # noqa: PLC0415
+
     controller = KeygenController()
     try:
         result = controller.generate(key_id=name, keys_dir=Path(keys_dir))
-    except ValueError as exc:
+    except (ValueError, ValidationError) as exc:
         _error(str(exc))
         sys.exit(1)
 
@@ -180,6 +182,8 @@ def encrypt_cmd(
         else plaintext_file.with_name(plaintext_file.name + ".enc")
     )
 
+    from src.utils.validators import ValidationError  # noqa: PLC0415
+
     controller = EncryptController()
     try:
         result = controller.encrypt_file(
@@ -189,7 +193,7 @@ def encrypt_cmd(
             recipient_key_id=recipient,
             keys_dir=Path(keys_dir),
         )
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, ValidationError) as exc:
         _error(str(exc))
         sys.exit(1)
     except Exception as exc:
@@ -244,6 +248,8 @@ def decrypt_cmd(
     else:
         out_path = ciphertext_file.with_name(ciphertext_file.stem + ".dec")
 
+    from src.utils.validators import ValidationError  # noqa: PLC0415
+
     controller = DecryptController()
     try:
         result = controller.decrypt_file(
@@ -252,7 +258,7 @@ def decrypt_cmd(
             recipient_key_id=recipient,
             keys_dir=Path(keys_dir),
         )
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, ValidationError) as exc:
         _error(str(exc))
         sys.exit(1)
     except AuthenticationError:

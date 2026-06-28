@@ -16,6 +16,7 @@ from src.services.encryption_orchestrator import EncryptionOrchestrator
 from src.services.packet_service import PacketService
 from src.storage.key_storage import KeyStorage
 from src.utils.logging_config import get_logger
+from src.utils.validators import ValidationError, validate_output_parent
 
 log = get_logger(__name__)
 
@@ -63,6 +64,8 @@ class DecryptController:
         FileNotFoundError    : Private key missing from keys_dir.
         AuthenticationError  : AES-GCM tag check failed (wrong key / tampered).
         """
+        validate_output_parent(output_path)
+
         packet = self._packet.load_from_file(str(input_path))
 
         storage = KeyStorage(keys_dir)

@@ -15,6 +15,12 @@ from src.services.encryption_orchestrator import EncryptionOrchestrator
 from src.services.packet_service import PacketService
 from src.storage.key_storage import KeyStorage
 from src.utils.logging_config import get_logger
+from src.utils.validators import (
+    ValidationError,
+    validate_file_size,
+    validate_output_parent,
+    validate_plaintext_not_empty,
+)
 
 log = get_logger(__name__)
 
@@ -65,6 +71,9 @@ class EncryptController:
         ------
         FileNotFoundError : Recipient X25519 public key is missing in keys_dir.
         """
+        validate_file_size(input_path)
+        validate_output_parent(output_path)
+
         storage = KeyStorage(keys_dir)
 
         if not storage.x25519_public_key_exists(recipient_key_id):
@@ -85,6 +94,7 @@ class EncryptController:
             )
 
         plaintext = input_path.read_bytes()
+        validate_plaintext_not_empty(plaintext)
 
         log.info(
             "encrypt_controller.encrypt_file.start",
