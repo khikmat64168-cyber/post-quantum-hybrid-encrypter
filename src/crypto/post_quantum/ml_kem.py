@@ -23,10 +23,10 @@ from __future__ import annotations
 # Lazy import — the module can be imported even without pyoqs installed.
 # Calling any public function without pyoqs raises ImportError with instructions.
 try:
-    import oqs as _oqs  # type: ignore[import-untyped]
+    import oqs as _oqs
     _OQS_AVAILABLE = True
 except ImportError:
-    _oqs = None  # type: ignore[assignment]
+    _oqs = None
     _OQS_AVAILABLE = False
 
 # liboqs algorithm identifier for ML-KEM-768

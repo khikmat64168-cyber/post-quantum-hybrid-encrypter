@@ -40,7 +40,9 @@ def _print_banner() -> None:
 
 
 def _error(msg: str) -> None:
-    console.print(Panel(f"[bold red]Error:[/] {msg}", border_style="red", title="[bold red]Failed[/]"))
+    console.print(
+        Panel(f"[bold red]Error:[/] {msg}", border_style="red", title="[bold red]Failed[/]")
+    )
 
 
 def _success(msg: str) -> None:
@@ -95,7 +97,6 @@ def status_cmd() -> None:
 def keygen_cmd(name: str, keys_dir: str) -> None:
     """Generate a hybrid X25519 + ML-KEM-768 key pair."""
     from src.controllers.keygen_controller import KeygenController  # noqa: PLC0415
-
     from src.utils.validators import ValidationError  # noqa: PLC0415
 
     controller = KeygenController()
@@ -105,7 +106,11 @@ def keygen_cmd(name: str, keys_dir: str) -> None:
         _error(str(exc))
         sys.exit(1)
 
-    table = Table(title=f"Key Pair — [bold cyan]{result.key_id}[/]", border_style="bright_blue", show_lines=True)
+    table = Table(
+        title=f"Key Pair — [bold cyan]{result.key_id}[/]",
+        border_style="bright_blue",
+        show_lines=True,
+    )
     table.add_column("File", style="cyan", min_width=32)
     table.add_column("Type", min_width=22)
     table.add_column("Permissions", min_width=12)
@@ -147,7 +152,12 @@ def keygen_cmd(name: str, keys_dir: str) -> None:
         else Text("Classical (X25519 only)", style="yellow")
     )
     console.print(f"  Mode: {mode_label}")
-    console.print(f"  Share [bold cyan]{result.x25519_public_path.name}[/] (and [bold cyan]{result.mlkem_public_path.name if result.mlkem_public_path else 'N/A'}[/]) with anyone who wants to encrypt for [bold]{result.key_id}[/].")
+    mlkem_pub_name = result.mlkem_public_path.name if result.mlkem_public_path else "N/A"
+    console.print(
+        f"  Share [bold cyan]{result.x25519_public_path.name}[/] "
+        f"(and [bold cyan]{mlkem_pub_name}[/]) "
+        f"with anyone who wants to encrypt for [bold]{result.key_id}[/]."
+    )
 
 
 # ------------------------------------------------------------------
@@ -156,7 +166,13 @@ def keygen_cmd(name: str, keys_dir: str) -> None:
 
 @cli.command("encrypt")
 @click.argument("plaintext_file", type=click.Path(exists=True, readable=True, path_type=Path))
-@click.option("--sender", "-s", default="anonymous", show_default=True, help="Sender label (bound into packet metadata).")
+@click.option(
+    "--sender",
+    "-s",
+    default="anonymous",
+    show_default=True,
+    help="Sender label (bound into packet metadata).",
+)
 @click.option("--recipient", "-r", required=True, help="Recipient key ID (e.g. bob).")
 @click.option(
     "--keys-dir",
@@ -209,7 +225,11 @@ def encrypt_cmd(
     table.add_row("Sender", sender)
     table.add_row("Recipient", recipient)
     table.add_row("Algorithm", result.algorithm)
-    table.add_row("Mode", Text("Hybrid", style="bold green") if result.is_hybrid else Text("Classical", style="yellow"))
+    if result.is_hybrid:
+        mode_text = Text("Hybrid", style="bold green")
+    else:
+        mode_text = Text("Classical", style="yellow")
+    table.add_row("Mode", mode_text)
     table.add_row("Plaintext size", _fmt_size(result.plaintext_size))
     table.add_row("Ciphertext size", _fmt_size(result.ciphertext_size))
 
@@ -222,7 +242,9 @@ def encrypt_cmd(
 
 @cli.command("decrypt")
 @click.argument("ciphertext_file", type=click.Path(exists=True, readable=True, path_type=Path))
-@click.option("--recipient", "-r", required=True, help="Recipient key ID whose private key is used.")
+@click.option(
+    "--recipient", "-r", required=True, help="Recipient key ID whose private key is used."
+)
 @click.option(
     "--keys-dir",
     "-d",
@@ -230,7 +252,9 @@ def encrypt_cmd(
     show_default=True,
     help="Directory containing recipient private keys.",
 )
-@click.option("--output", "-o", default=None, help="Output file (default: strips .enc or adds .dec).")
+@click.option(
+    "--output", "-o", default=None, help="Output file (default: strips .enc or adds .dec)."
+)
 def decrypt_cmd(
     ciphertext_file: Path,
     recipient: str,

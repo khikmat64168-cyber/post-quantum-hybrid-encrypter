@@ -11,11 +11,10 @@ import logging
 import logging.handlers
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import structlog
 from structlog.types import EventDict, WrappedLogger
-
 
 # ---------------------------------------------------------------------------
 # Custom processors
@@ -133,4 +132,4 @@ def configure_logging(
 
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:
     """Return a named structlog logger."""
-    return structlog.get_logger(name)
+    return cast(structlog.stdlib.BoundLogger, structlog.get_logger(name))

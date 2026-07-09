@@ -8,7 +8,8 @@ later phases). Returns Rich renderables consumed by the CLI view.
 from __future__ import annotations
 
 import sys
-from importlib.metadata import version as pkg_version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as pkg_version
 
 from rich.table import Table
 from rich.text import Text
@@ -55,7 +56,7 @@ class StatusController:
 
     def _kem_status(self, algorithm: str) -> tuple[str, Text, str]:
         try:
-            import oqs  # type: ignore[import-untyped]
+            import oqs
 
             enabled = oqs.get_enabled_KEM_mechanisms()
             if algorithm in enabled:
