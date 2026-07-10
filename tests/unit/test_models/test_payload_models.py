@@ -7,7 +7,6 @@ import pytest
 
 from src.models.payload_models import AESPayload, HybridKeyMaterial
 
-
 # ------------------------------------------------------------------
 # HybridKeyMaterial
 # ------------------------------------------------------------------
@@ -41,7 +40,9 @@ class TestHybridKeyMaterial:
         assert base64.b64decode(d["salt_b64"]) == salt
 
     def test_to_dict_contains_info(self) -> None:
-        km = HybridKeyMaterial(master_key=os.urandom(32), salt=os.urandom(32), info=b"pqhe-v1-aes256gcm")
+        km = HybridKeyMaterial(
+            master_key=os.urandom(32), salt=os.urandom(32), info=b"pqhe-v1-aes256gcm"
+        )
         d = km.to_dict()
         assert d["info"] == "pqhe-v1-aes256gcm"
 

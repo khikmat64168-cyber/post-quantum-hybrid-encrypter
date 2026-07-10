@@ -9,7 +9,6 @@ import pytest
 
 from src.models.packet_models import EncryptedPacket
 from src.services.encryption_orchestrator import EncryptionOrchestrator
-from src.services.packet_service import PacketService, PacketValidationError
 from src.services.x25519_service import X25519Service
 
 
@@ -102,7 +101,7 @@ class TestX25519OnlyFlow:
 @pytest.mark.integration
 class TestHybridFlow:
     def test_hybrid_flow(self, orchestrator: EncryptionOrchestrator) -> None:
-        oqs = pytest.importorskip("oqs", reason="pyoqs not installed")
+        pytest.importorskip("oqs", reason="pyoqs not installed")
         from src.services.mlkem_service import MLKEMService
         from src.services.x25519_service import X25519Service
 

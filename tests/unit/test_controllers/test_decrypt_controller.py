@@ -2,7 +2,7 @@
 
 import base64
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -25,7 +25,7 @@ def _dummy_packet(algorithm: str = ALGORITHM_CLASSICAL) -> EncryptedPacket:
         metadata=PacketMetadata(
             version=CURRENT_VERSION,
             algorithm=algorithm,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             sender_key_id="alice",
             recipient_key_id="bob",
         ),
@@ -56,7 +56,9 @@ def packet_file(tmp_path: Path) -> Path:
 
 @pytest.mark.unit
 class TestDecryptController:
-    def test_decrypt_file_returns_decrypt_result(self, keys_dir: Path, packet_file: Path, tmp_path: Path) -> None:
+    def test_decrypt_file_returns_decrypt_result(
+        self, keys_dir: Path, packet_file: Path, tmp_path: Path
+    ) -> None:
         orchestrator = MagicMock()
         orchestrator.decrypt.return_value = b"secret"
 
@@ -71,7 +73,9 @@ class TestDecryptController:
 
         assert isinstance(result, DecryptResult)
 
-    def test_decrypt_file_writes_plaintext(self, keys_dir: Path, packet_file: Path, tmp_path: Path) -> None:
+    def test_decrypt_file_writes_plaintext(
+        self, keys_dir: Path, packet_file: Path, tmp_path: Path
+    ) -> None:
         orchestrator = MagicMock()
         orchestrator.decrypt.return_value = b"hello world"
 
@@ -86,7 +90,9 @@ class TestDecryptController:
 
         assert out.read_bytes() == b"hello world"
 
-    def test_decrypt_result_plaintext_size(self, keys_dir: Path, packet_file: Path, tmp_path: Path) -> None:
+    def test_decrypt_result_plaintext_size(
+        self, keys_dir: Path, packet_file: Path, tmp_path: Path
+    ) -> None:
         orchestrator = MagicMock()
         orchestrator.decrypt.return_value = b"hello world"
 
@@ -101,7 +107,9 @@ class TestDecryptController:
 
         assert result.plaintext_size == 11
 
-    def test_decrypt_missing_private_key_raises_file_not_found(self, tmp_path: Path, packet_file: Path) -> None:
+    def test_decrypt_missing_private_key_raises_file_not_found(
+        self, tmp_path: Path, packet_file: Path
+    ) -> None:
         ctrl = DecryptController()
         with pytest.raises(FileNotFoundError, match="bob"):
             ctrl.decrypt_file(
@@ -111,7 +119,9 @@ class TestDecryptController:
                 keys_dir=tmp_path,  # no keys here
             )
 
-    def test_decrypt_authentication_error_propagates(self, keys_dir: Path, packet_file: Path, tmp_path: Path) -> None:
+    def test_decrypt_authentication_error_propagates(
+        self, keys_dir: Path, packet_file: Path, tmp_path: Path
+    ) -> None:
         orchestrator = MagicMock()
         orchestrator.decrypt.side_effect = AuthenticationError("tag mismatch")
 
@@ -125,7 +135,9 @@ class TestDecryptController:
                 keys_dir=keys_dir,
             )
 
-    def test_decrypt_result_stores_paths(self, keys_dir: Path, packet_file: Path, tmp_path: Path) -> None:
+    def test_decrypt_result_stores_paths(
+        self, keys_dir: Path, packet_file: Path, tmp_path: Path
+    ) -> None:
         orchestrator = MagicMock()
         orchestrator.decrypt.return_value = b"data"
 
@@ -141,7 +153,9 @@ class TestDecryptController:
         assert result.input_path == packet_file
         assert result.output_path == out
 
-    def test_decrypt_nonexistent_output_parent_raises(self, keys_dir: Path, packet_file: Path, tmp_path: Path) -> None:
+    def test_decrypt_nonexistent_output_parent_raises(
+        self, keys_dir: Path, packet_file: Path, tmp_path: Path
+    ) -> None:
         from src.utils.validators import ValidationError
         ctrl = DecryptController()
         with pytest.raises((FileNotFoundError, ValidationError)):
@@ -152,7 +166,9 @@ class TestDecryptController:
                 keys_dir=keys_dir,
             )
 
-    def test_decrypt_result_stores_algorithm(self, keys_dir: Path, packet_file: Path, tmp_path: Path) -> None:
+    def test_decrypt_result_stores_algorithm(
+        self, keys_dir: Path, packet_file: Path, tmp_path: Path
+    ) -> None:
         orchestrator = MagicMock()
         orchestrator.decrypt.return_value = b"data"
 

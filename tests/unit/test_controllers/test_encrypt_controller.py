@@ -2,7 +2,7 @@
 
 import base64
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -24,7 +24,7 @@ def _dummy_packet(sender: str = "alice", recipient: str = "bob") -> EncryptedPac
         metadata=PacketMetadata(
             version=CURRENT_VERSION,
             algorithm=ALGORITHM_CLASSICAL,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             sender_key_id=sender,
             recipient_key_id=recipient,
         ),
@@ -103,7 +103,9 @@ class TestEncryptController:
         call_kwargs = orchestrator.encrypt.call_args.kwargs
         assert call_kwargs["plaintext"] == b"hello world"
 
-    def test_encrypt_passes_sender_and_recipient_ids(self, keys_dir: Path, input_file: Path) -> None:
+    def test_encrypt_passes_sender_and_recipient_ids(
+        self, keys_dir: Path, input_file: Path
+    ) -> None:
         orchestrator = MagicMock()
         orchestrator.encrypt.return_value = _dummy_packet()
 
@@ -137,7 +139,9 @@ class TestEncryptController:
         assert result.plaintext_size == 11  # len(b"hello world")
         assert result.ciphertext_size == len(packet.ciphertext_bytes)
 
-    def test_encrypt_missing_recipient_raises_file_not_found(self, tmp_path: Path, input_file: Path) -> None:
+    def test_encrypt_missing_recipient_raises_file_not_found(
+        self, tmp_path: Path, input_file: Path
+    ) -> None:
         ctrl = EncryptController()
         with pytest.raises(FileNotFoundError, match="charlie"):
             ctrl.encrypt_file(
@@ -173,7 +177,9 @@ class TestEncryptController:
                 keys_dir=keys_dir,
             )
 
-    def test_encrypt_nonexistent_output_parent_raises(self, keys_dir: Path, input_file: Path, tmp_path: Path) -> None:
+    def test_encrypt_nonexistent_output_parent_raises(
+        self, keys_dir: Path, input_file: Path, tmp_path: Path
+    ) -> None:
         from src.utils.validators import ValidationError
         ctrl = EncryptController()
         with pytest.raises((FileNotFoundError, ValidationError)):

@@ -1,6 +1,7 @@
 """Unit tests for config model dataclasses."""
 
 import pytest
+
 from src.models.config_models import AppConfig, CryptoConfig, LoggingConfig, StorageConfig
 
 
@@ -16,7 +17,7 @@ class TestCryptoConfig:
 
     def test_immutable(self) -> None:
         cfg = CryptoConfig()
-        with pytest.raises(Exception):
+        with pytest.raises(AttributeError):
             cfg.kem_algorithm = "invalid"  # type: ignore[misc]
 
 

@@ -18,21 +18,16 @@ They prove that PQ-HE provides authenticated encryption, not just secrecy.
 from __future__ import annotations
 
 import base64
-import os
 
 import pytest
 
 from src.models.packet_models import (
-    ALGORITHM_CLASSICAL,
-    CURRENT_VERSION,
     EncryptedPacket,
     PacketMetadata,
 )
 from src.services.aes_service import AuthenticationError
 from src.services.encryption_orchestrator import EncryptionOrchestrator
 from src.services.x25519_service import X25519Service
-
-from datetime import datetime, timezone
 
 
 @pytest.fixture
@@ -176,7 +171,7 @@ class TestMetadataBinding:
         packet = orchestrator.encrypt(b"data", pub, "alice", "bob")
 
         tampered_meta = PacketMetadata(
-            version="9",                      # tampered (but still passes PacketService validation bypass)
+            version="9",  # tampered — AAD will differ, causing AES-GCM tag failure
             algorithm=packet.metadata.algorithm,
             created_at=packet.metadata.created_at,
             sender_key_id=packet.metadata.sender_key_id,
