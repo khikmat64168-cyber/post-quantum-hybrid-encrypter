@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # Job 1: Static analysis (lint + types)
+  # Runs on a single Python version — quality checks are not
+  # version-sensitive and this keeps CI fast.
+  # ──────────────────────────────────────────────────────────────
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: ruff — lint
+        run: ruff check src/ tests/
+
+      - name: mypy — type check
+        run: mypy src/
+
+  # ──────────────────────────────────────────────────────────────
+  # Job 2: Test matrix
+  # Runs unit tests, then integration tests, then the full suite
+  # with coverage enforcement (≥80%).  fail-fast: false means
+  # both Python versions run to completion even if one fails.
+  # ──────────────────────────────────────────────────────────────
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Unit tests
+        run: pytest -m unit --no-cov
+
+      - name: Integration tests
+        run: pytest -m integration --no-cov
+
+      - name: Full suite + coverage gate (≥80%)
+        run: pytest --cov-report=xml
+
+      - name: Upload HTML coverage report
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: htmlcov/
+          retention-days: 7
