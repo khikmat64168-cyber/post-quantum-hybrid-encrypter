@@ -94,14 +94,26 @@ def status_cmd() -> None:
     show_default=True,
     help="Directory to write key files.",
 )
-def keygen_cmd(name: str, keys_dir: str) -> None:
+@click.option(
+    "--protect",
+    is_flag=True,
+    default=False,
+    help="Encrypt private keys with a passphrase (Argon2id + AES-256-GCM).",
+)
+def keygen_cmd(name: str, keys_dir: str, protect: bool) -> None:
     """Generate a hybrid X25519 + ML-KEM-768 key pair."""
     from src.controllers.keygen_controller import KeygenController  # noqa: PLC0415
     from src.utils.validators import ValidationError  # noqa: PLC0415
 
+    passphrase: str | None = None
+    if protect:
+        passphrase = click.prompt(
+            "Passphrase", hide_input=True, confirmation_prompt="Confirm passphrase"
+        )
+
     controller = KeygenController()
     try:
-        result = controller.generate(key_id=name, keys_dir=Path(keys_dir))
+        result = controller.generate(key_id=name, keys_dir=Path(keys_dir), passphrase=passphrase)
     except (ValueError, ValidationError) as exc:
         _error(str(exc))
         sys.exit(1)
@@ -152,6 +164,8 @@ def keygen_cmd(name: str, keys_dir: str) -> None:
         else Text("Classical (X25519 only)", style="yellow")
     )
     console.print(f"  Mode: {mode_label}")
+    if result.protected:
+        console.print("  [bold green]Keys are passphrase-protected[/] (Argon2id + AES-256-GCM).")
     mlkem_pub_name = result.mlkem_public_path.name if result.mlkem_public_path else "N/A"
     console.print(
         f"  Share [bold cyan]{result.x25519_public_path.name}[/] "
@@ -262,8 +276,12 @@ def decrypt_cmd(
     output: str | None,
 ) -> None:
     """Decrypt a hybrid-encrypted file using a private key."""
-    from src.controllers.decrypt_controller import DecryptController  # noqa: PLC0415
+    from src.controllers.decrypt_controller import (  # noqa: PLC0415
+        DecryptController,
+        WrongPassphraseError,
+    )
     from src.services.aes_service import AuthenticationError  # noqa: PLC0415
+    from src.utils.validators import ValidationError  # noqa: PLC0415
 
     if output:
         out_path = Path(output)
@@ -272,16 +290,23 @@ def decrypt_cmd(
     else:
         out_path = ciphertext_file.with_name(ciphertext_file.stem + ".dec")
 
-    from src.utils.validators import ValidationError  # noqa: PLC0415
-
     controller = DecryptController()
+
+    passphrase: str | None = None
+    if controller.is_recipient_key_protected(recipient, Path(keys_dir)):
+        passphrase = click.prompt("Passphrase", hide_input=True)
+
     try:
         result = controller.decrypt_file(
             input_path=ciphertext_file,
             output_path=out_path,
             recipient_key_id=recipient,
             keys_dir=Path(keys_dir),
+            passphrase=passphrase,
         )
+    except WrongPassphraseError:
+        _error("Wrong passphrase — key could not be decrypted.")
+        sys.exit(1)
     except (FileNotFoundError, ValidationError) as exc:
         _error(str(exc))
         sys.exit(1)

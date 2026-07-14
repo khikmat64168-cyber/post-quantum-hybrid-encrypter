@@ -14,7 +14,7 @@ from src.services.mlkem_service import MLKEMService
 from src.services.x25519_service import X25519Service
 from src.storage.key_storage import KeyStorage
 from src.utils.logging_config import get_logger
-from src.utils.validators import ValidationError, validate_key_id
+from src.utils.validators import validate_key_id
 
 log = get_logger(__name__)
 
@@ -30,6 +30,7 @@ class KeygenResult:
     mlkem_private_path: Path | None
     mlkem_public_path: Path | None
     mlkem_available: bool
+    protected: bool = False
 
 
 class KeygenController:
@@ -43,7 +44,9 @@ class KeygenController:
         self._x25519 = x25519_service or X25519Service()
         self._mlkem = mlkem_service or MLKEMService()
 
-    def generate(self, key_id: str, keys_dir: Path) -> KeygenResult:
+    def generate(
+        self, key_id: str, keys_dir: Path, passphrase: str | None = None
+    ) -> KeygenResult:
         """
         Generate and save a key pair identified by key_id.
 
@@ -68,7 +71,10 @@ class KeygenController:
 
         # X25519 — always generated
         x25519_priv, x25519_pub = self._x25519.generate_keypair(key_id)
-        priv_path = storage.save_x25519_private_key(x25519_priv)
+        if passphrase:
+            priv_path = storage.save_x25519_private_key_protected(x25519_priv, passphrase)
+        else:
+            priv_path = storage.save_x25519_private_key(x25519_priv)
         pub_path = storage.save_x25519_public_key(x25519_pub)
 
         # ML-KEM-768 — only when pyoqs is available
@@ -76,7 +82,12 @@ class KeygenController:
         mlkem_pub_path: Path | None = None
         if self._mlkem.is_available():
             mlkem_priv, mlkem_pub = self._mlkem.generate_keypair(key_id)
-            mlkem_priv_path = storage.save_mlkem_private_key(mlkem_priv)
+            if passphrase:
+                mlkem_priv_path = storage.save_mlkem_private_key_protected(
+                    mlkem_priv, passphrase
+                )
+            else:
+                mlkem_priv_path = storage.save_mlkem_private_key(mlkem_priv)
             mlkem_pub_path = storage.save_mlkem_public_key(mlkem_pub)
 
         log.info(
@@ -93,4 +104,5 @@ class KeygenController:
             mlkem_private_path=mlkem_priv_path,
             mlkem_public_path=mlkem_pub_path,
             mlkem_available=self._mlkem.is_available(),
+            protected=passphrase is not None,
         )

@@ -11,12 +11,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.services.aes_service import AuthenticationError
 from src.services.encryption_orchestrator import EncryptionOrchestrator
 from src.services.packet_service import PacketService
-from src.storage.key_storage import KeyStorage
+from src.storage.key_storage import KeyProtectedError, KeyStorage, WrongPassphraseError
 from src.utils.logging_config import get_logger
-from src.utils.validators import ValidationError, validate_output_parent
+from src.utils.validators import validate_output_parent
+
+__all__ = ["DecryptController", "DecryptResult", "KeyProtectedError", "WrongPassphraseError"]
 
 log = get_logger(__name__)
 
@@ -42,12 +43,18 @@ class DecryptController:
         self._orchestrator = orchestrator or EncryptionOrchestrator()
         self._packet = packet_service or PacketService()
 
+    def is_recipient_key_protected(self, recipient_key_id: str, keys_dir: Path) -> bool:
+        """Return True if the recipient's private key is passphrase-protected."""
+        storage = KeyStorage(keys_dir)
+        return storage.is_x25519_private_key_protected(recipient_key_id)
+
     def decrypt_file(
         self,
         input_path: Path,
         output_path: Path,
         recipient_key_id: str,
         keys_dir: Path,
+        passphrase: str | None = None,
     ) -> DecryptResult:
         """
         Decrypt input_path and write plaintext to output_path.
@@ -77,7 +84,8 @@ class DecryptController:
             )
 
         recipient_x25519_priv = storage.load_x25519_private_key(
-            storage.x25519_private_key_path(recipient_key_id)
+            storage.x25519_private_key_path(recipient_key_id),
+            passphrase=passphrase,
         )
 
         recipient_mlkem_priv = None
@@ -88,7 +96,8 @@ class DecryptController:
                     "This packet was encrypted in hybrid mode."
                 )
             recipient_mlkem_priv = storage.load_mlkem_private_key(
-                storage.mlkem_private_key_path(recipient_key_id)
+                storage.mlkem_private_key_path(recipient_key_id),
+                passphrase=passphrase,
             )
 
         log.info(
