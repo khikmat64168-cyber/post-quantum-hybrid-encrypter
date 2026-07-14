@@ -6,6 +6,7 @@
 # --- Core Cryptography ---
 cryptography>=42.0.0
 pyoqs>=0.10.0
+argon2-cffi>=23.1.0
 
 # --- CLI & Terminal UI ---
 rich>=13.7.0

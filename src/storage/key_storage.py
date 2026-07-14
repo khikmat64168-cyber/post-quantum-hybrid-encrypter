@@ -3,17 +3,26 @@ Key storage — secure filesystem persistence for key models.
 
 Keys are stored as JSON files. Private key files are created with 0o600
 permissions (owner read/write only — no group, no other).
-This module has no knowledge of cryptographic algorithms; it serializes
-and deserializes the model objects it receives.
+
+Passphrase-protected keys use Argon2id + AES-256-GCM to encrypt the raw
+key bytes before writing. The on-disk format includes all parameters
+needed for decryption (salt, nonce) but nothing sensitive.
 """
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 from pathlib import Path
+from typing import Any
 
+from cryptography.exceptions import InvalidTag
+
+from src.crypto.classical import aes_gcm
+from src.crypto.classical.argon2_kdf import derive_key, new_salt
 from src.models.key_models import (
+    KeyMetadata,
     MLKEMCiphertextModel,
     MLKEMPrivateKeyModel,
     MLKEMPublicKeyModel,
@@ -29,6 +38,14 @@ _PRIVATE_MODE = 0o600
 _PUBLIC_MODE = 0o644
 
 
+class KeyProtectedError(RuntimeError):
+    """Raised when a key file is passphrase-protected but no passphrase was supplied."""
+
+
+class WrongPassphraseError(ValueError):
+    """Raised when the supplied passphrase fails to decrypt a protected key."""
+
+
 class KeyStorage:
     """Manages secure key persistence on the local filesystem."""
 
@@ -41,10 +58,26 @@ class KeyStorage:
     # ------------------------------------------------------------------
 
     def save_x25519_private_key(self, model: X25519PrivateKeyModel) -> Path:
-        """Write an X25519 private key with 0o600 permissions."""
+        """Write an unprotected X25519 private key with 0o600 permissions."""
         path = self._dir / f"{model.metadata.key_id}_x25519_private.json"
         self._write(path, model.to_dict(), mode=_PRIVATE_MODE)
         log.info("key_storage.save_x25519_private_key", path=str(path))
+        return path
+
+    def save_x25519_private_key_protected(
+        self, model: X25519PrivateKeyModel, passphrase: str
+    ) -> Path:
+        """Write an Argon2id+AES-256-GCM-protected X25519 private key."""
+        path = self._dir / f"{model.metadata.key_id}_x25519_private.json"
+        data: dict[str, Any] = {
+            "key_type": "private",
+            "key_id": model.metadata.key_id,
+            "algorithm": model.metadata.algorithm,
+            "created_at": model.metadata.created_at.isoformat(),
+            **_protect(model.raw_bytes, passphrase),
+        }
+        self._write(path, data, mode=_PRIVATE_MODE)
+        log.info("key_storage.save_x25519_private_key_protected", path=str(path))
         return path
 
     def save_x25519_public_key(self, model: X25519PublicKeyModel) -> Path:
@@ -58,10 +91,28 @@ class KeyStorage:
     # X25519 — Read
     # ------------------------------------------------------------------
 
-    def load_x25519_private_key(self, path: Path) -> X25519PrivateKeyModel:
-        """Deserialize an X25519 private key from a JSON file."""
+    def load_x25519_private_key(
+        self, path: Path, passphrase: str | None = None
+    ) -> X25519PrivateKeyModel:
+        """
+        Deserialize an X25519 private key from a JSON file.
+
+        If the file is passphrase-protected, supply `passphrase`.
+        Raises KeyProtectedError if protected and passphrase is None.
+        Raises WrongPassphraseError if the passphrase is incorrect.
+        """
         data = self._read(path)
         log.info("key_storage.load_x25519_private_key", path=str(path))
+        if data.get("protected"):
+            if passphrase is None:
+                raise KeyProtectedError(
+                    f"Key '{data.get('key_id', path.stem)}' is passphrase-protected."
+                )
+            raw_bytes = _unprotect(data, passphrase)
+            return X25519PrivateKeyModel(
+                raw_bytes=raw_bytes,
+                metadata=KeyMetadata.from_dict(data),
+            )
         return X25519PrivateKeyModel.from_dict(data)
 
     def load_x25519_public_key(self, path: Path) -> X25519PublicKeyModel:
@@ -71,14 +122,41 @@ class KeyStorage:
         return X25519PublicKeyModel.from_dict(data)
 
     # ------------------------------------------------------------------
+    # X25519 — Protected-key helpers
+    # ------------------------------------------------------------------
+
+    def is_x25519_private_key_protected(self, key_id: str) -> bool:
+        """Return True if the X25519 private key for key_id is passphrase-protected."""
+        path = self.x25519_private_key_path(key_id)
+        if not path.exists():
+            return False
+        return bool(self._read(path).get("protected", False))
+
+    # ------------------------------------------------------------------
     # ML-KEM-768 — Write
     # ------------------------------------------------------------------
 
     def save_mlkem_private_key(self, model: MLKEMPrivateKeyModel) -> Path:
-        """Write an ML-KEM-768 private key with 0o600 permissions."""
+        """Write an unprotected ML-KEM-768 private key with 0o600 permissions."""
         path = self._dir / f"{model.metadata.key_id}_mlkem_private.json"
         self._write(path, model.to_dict(), mode=_PRIVATE_MODE)
         log.info("key_storage.save_mlkem_private_key", path=str(path))
+        return path
+
+    def save_mlkem_private_key_protected(
+        self, model: MLKEMPrivateKeyModel, passphrase: str
+    ) -> Path:
+        """Write an Argon2id+AES-256-GCM-protected ML-KEM-768 private key."""
+        path = self._dir / f"{model.metadata.key_id}_mlkem_private.json"
+        data: dict[str, Any] = {
+            "key_type": "private",
+            "key_id": model.metadata.key_id,
+            "algorithm": model.metadata.algorithm,
+            "created_at": model.metadata.created_at.isoformat(),
+            **_protect(model.raw_bytes, passphrase),
+        }
+        self._write(path, data, mode=_PRIVATE_MODE)
+        log.info("key_storage.save_mlkem_private_key_protected", path=str(path))
         return path
 
     def save_mlkem_public_key(self, model: MLKEMPublicKeyModel) -> Path:
@@ -99,10 +177,28 @@ class KeyStorage:
     # ML-KEM-768 — Read
     # ------------------------------------------------------------------
 
-    def load_mlkem_private_key(self, path: Path) -> MLKEMPrivateKeyModel:
-        """Deserialize an ML-KEM-768 private key from a JSON file."""
+    def load_mlkem_private_key(
+        self, path: Path, passphrase: str | None = None
+    ) -> MLKEMPrivateKeyModel:
+        """
+        Deserialize an ML-KEM-768 private key from a JSON file.
+
+        If the file is passphrase-protected, supply `passphrase`.
+        Raises KeyProtectedError if protected and passphrase is None.
+        Raises WrongPassphraseError if the passphrase is incorrect.
+        """
         data = self._read(path)
         log.info("key_storage.load_mlkem_private_key", path=str(path))
+        if data.get("protected"):
+            if passphrase is None:
+                raise KeyProtectedError(
+                    f"Key '{data.get('key_id', path.stem)}' is passphrase-protected."
+                )
+            raw_bytes = _unprotect(data, passphrase)
+            return MLKEMPrivateKeyModel(
+                raw_bytes=raw_bytes,
+                metadata=KeyMetadata.from_dict(data),
+            )
         return MLKEMPrivateKeyModel.from_dict(data)
 
     def load_mlkem_public_key(self, path: Path) -> MLKEMPublicKeyModel:
@@ -116,6 +212,17 @@ class KeyStorage:
         data = self._read(path)
         log.info("key_storage.load_mlkem_ciphertext", path=str(path))
         return MLKEMCiphertextModel.from_dict(data)
+
+    # ------------------------------------------------------------------
+    # ML-KEM — Protected-key helper
+    # ------------------------------------------------------------------
+
+    def is_mlkem_private_key_protected(self, key_id: str) -> bool:
+        """Return True if the ML-KEM private key for key_id is passphrase-protected."""
+        path = self.mlkem_private_key_path(key_id)
+        if not path.exists():
+            return False
+        return bool(self._read(path).get("protected", False))
 
     # ------------------------------------------------------------------
     # Path helpers — X25519
@@ -157,12 +264,42 @@ class KeyStorage:
     # Internal
     # ------------------------------------------------------------------
 
-    def _write(self, path: Path, data: dict[str, str], *, mode: int) -> None:
+    def _write(self, path: Path, data: dict[str, Any], *, mode: int) -> None:
         path.write_text(json.dumps(data, indent=2), encoding="utf-8")
         os.chmod(path, mode)
 
-    def _read(self, path: Path) -> dict[str, str]:
+    def _read(self, path: Path) -> dict[str, Any]:
         if not path.exists():
             raise FileNotFoundError(f"Key file not found: {path}")
-        raw: dict[str, str] = json.loads(path.read_text(encoding="utf-8"))
-        return raw
+        result: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+        return result
+
+
+# ------------------------------------------------------------------
+# Module-level protect / unprotect helpers
+# ------------------------------------------------------------------
+
+def _protect(raw_bytes: bytes, passphrase: str) -> dict[str, Any]:
+    """Encrypt raw key bytes with Argon2id-derived AES-256-GCM key."""
+    salt = new_salt()
+    key = derive_key(passphrase, salt)
+    nonce = aes_gcm.generate_iv()
+    ciphertext = aes_gcm.encrypt(key, nonce, raw_bytes)
+    return {
+        "protected": True,
+        "argon2_salt_b64": base64.b64encode(salt).decode(),
+        "aes_nonce_b64": base64.b64encode(nonce).decode(),
+        "encrypted_bytes_b64": base64.b64encode(ciphertext).decode(),
+    }
+
+
+def _unprotect(data: dict[str, Any], passphrase: str) -> bytes:
+    """Decrypt a protected key envelope. Raises WrongPassphraseError on bad passphrase."""
+    salt = base64.b64decode(data["argon2_salt_b64"])
+    nonce = base64.b64decode(data["aes_nonce_b64"])
+    ciphertext = base64.b64decode(data["encrypted_bytes_b64"])
+    key = derive_key(passphrase, salt)
+    try:
+        return aes_gcm.decrypt(key, nonce, ciphertext)
+    except InvalidTag as exc:
+        raise WrongPassphraseError("Wrong passphrase — cannot decrypt key.") from exc

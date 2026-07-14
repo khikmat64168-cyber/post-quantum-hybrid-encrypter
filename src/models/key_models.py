@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -18,7 +19,7 @@ class KeyMetadata:
 
     key_id: str
     algorithm: str
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, str]:
         return {
@@ -28,11 +29,11 @@ class KeyMetadata:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, str]) -> "KeyMetadata":
+    def from_dict(cls, data: dict[str, Any]) -> KeyMetadata:
         return cls(
-            key_id=data["key_id"],
-            algorithm=data["algorithm"],
-            created_at=datetime.fromisoformat(data["created_at"]),
+            key_id=str(data["key_id"]),
+            algorithm=str(data["algorithm"]),
+            created_at=datetime.fromisoformat(str(data["created_at"])),
         )
 
 
@@ -60,7 +61,7 @@ class X25519PublicKeyModel:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, str]) -> "X25519PublicKeyModel":
+    def from_dict(cls, data: dict[str, Any]) -> X25519PublicKeyModel:
         return cls(
             raw_bytes=base64.b64decode(data["raw_bytes_b64"]),
             metadata=KeyMetadata(
@@ -99,7 +100,7 @@ class X25519PrivateKeyModel:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, str]) -> "X25519PrivateKeyModel":
+    def from_dict(cls, data: dict[str, Any]) -> X25519PrivateKeyModel:
         return cls(
             raw_bytes=base64.b64decode(data["raw_bytes_b64"]),
             metadata=KeyMetadata(
@@ -141,7 +142,7 @@ class MLKEMPublicKeyModel:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, str]) -> "MLKEMPublicKeyModel":
+    def from_dict(cls, data: dict[str, Any]) -> MLKEMPublicKeyModel:
         return cls(
             raw_bytes=base64.b64decode(data["raw_bytes_b64"]),
             metadata=KeyMetadata(
@@ -180,7 +181,7 @@ class MLKEMPrivateKeyModel:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, str]) -> "MLKEMPrivateKeyModel":
+    def from_dict(cls, data: dict[str, Any]) -> MLKEMPrivateKeyModel:
         return cls(
             raw_bytes=base64.b64decode(data["raw_bytes_b64"]),
             metadata=KeyMetadata(
@@ -220,7 +221,7 @@ class MLKEMCiphertextModel:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, str]) -> "MLKEMCiphertextModel":
+    def from_dict(cls, data: dict[str, Any]) -> MLKEMCiphertextModel:
         return cls(
             raw_bytes=base64.b64decode(data["raw_bytes_b64"]),
             metadata=KeyMetadata(

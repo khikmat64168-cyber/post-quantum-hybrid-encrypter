@@ -36,6 +36,7 @@ classifiers = [
 dependencies = [
     "cryptography>=42.0.0",
     "pyoqs>=0.10.0",
+    "argon2-cffi>=23.1.0",
     "rich>=13.7.0",
     "click>=8.1.7",
     "pydantic>=2.5.0",
