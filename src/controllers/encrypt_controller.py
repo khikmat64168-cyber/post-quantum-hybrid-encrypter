@@ -16,7 +16,6 @@ from src.services.packet_service import PacketService
 from src.storage.key_storage import KeyStorage
 from src.utils.logging_config import get_logger
 from src.utils.validators import (
-    ValidationError,
     validate_file_size,
     validate_output_parent,
     validate_plaintext_not_empty,

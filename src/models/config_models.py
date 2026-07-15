@@ -62,7 +62,7 @@ class AppConfig:
         return self.debug
 
     @classmethod
-    def from_settings(cls, s: object) -> "AppConfig":
+    def from_settings(cls, s: object) -> AppConfig:
         """
         Construct an AppConfig from the Pydantic AppSettings singleton.
         Decouples the model layer from the pydantic-settings dependency.

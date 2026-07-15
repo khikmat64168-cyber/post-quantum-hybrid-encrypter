@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import base64
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.models.key_models import MLKEMCiphertextModel, X25519PublicKeyModel
 from src.models.packet_models import (
@@ -75,7 +75,7 @@ class PacketService:
         metadata = PacketMetadata(
             version=CURRENT_VERSION,
             algorithm=algorithm,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             sender_key_id=sender_key_id,
             recipient_key_id=recipient_key_id,
         )

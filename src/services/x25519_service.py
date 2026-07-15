@@ -7,7 +7,7 @@ Controllers call this service; they never interact with crypto primitives direct
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.crypto.classical import x25519 as _x25519
 from src.models.key_models import (
@@ -48,7 +48,7 @@ class X25519Service:
         metadata = KeyMetadata(
             key_id=key_id,
             algorithm=_ALGORITHM,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
         private_model = X25519PrivateKeyModel(
@@ -108,7 +108,7 @@ class X25519Service:
             metadata=KeyMetadata(
                 key_id=key_id,
                 algorithm=_ALGORITHM,
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             ),
         )
 
@@ -122,6 +122,6 @@ class X25519Service:
             metadata=KeyMetadata(
                 key_id=key_id,
                 algorithm=_ALGORITHM,
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             ),
         )

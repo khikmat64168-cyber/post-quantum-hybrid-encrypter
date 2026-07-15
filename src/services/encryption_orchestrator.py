@@ -28,6 +28,8 @@ Decryption protocol (hybrid mode)
 
 from __future__ import annotations
 
+from datetime import UTC
+
 from src.models.key_models import (
     MLKEMPrivateKeyModel,
     MLKEMPublicKeyModel,
@@ -36,7 +38,7 @@ from src.models.key_models import (
 )
 from src.models.packet_models import EncryptedPacket
 from src.models.payload_models import AESPayload
-from src.services.aes_service import AESService, AuthenticationError
+from src.services.aes_service import AESService
 from src.services.hkdf_service import HKDFService
 from src.services.mlkem_service import MLKEMService
 from src.services.packet_service import PacketService
@@ -126,19 +128,20 @@ class EncryptionOrchestrator:
         key_material = self._hkdf.derive_hybrid(classical_secret, pq_secret)
 
         # Step 5: AES-256-GCM — build AAD from metadata first, then encrypt
+        from datetime import datetime  # noqa: PLC0415
+
         from src.models.packet_models import (  # noqa: PLC0415
             ALGORITHM_CLASSICAL,
             ALGORITHM_HYBRID,
             CURRENT_VERSION,
             PacketMetadata,
         )
-        from datetime import datetime, timezone  # noqa: PLC0415
 
         algorithm = ALGORITHM_HYBRID if mlkem_ciphertext_model else ALGORITHM_CLASSICAL
         temp_metadata = PacketMetadata(
             version=CURRENT_VERSION,
             algorithm=algorithm,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             sender_key_id=sender_key_id,
             recipient_key_id=recipient_key_id,
         )
@@ -222,15 +225,16 @@ class EncryptionOrchestrator:
                 raise RuntimeError(
                     "Packet requires ML-KEM-768 decapsulation but pyoqs is not installed."
                 )
+            from datetime import datetime  # noqa: PLC0415
+
             from src.models.key_models import KeyMetadata, MLKEMCiphertextModel  # noqa: PLC0415
-            from datetime import datetime, timezone  # noqa: PLC0415
 
             ct_model = MLKEMCiphertextModel(
                 raw_bytes=packet.mlkem_ciphertext_bytes,  # type: ignore[arg-type]
                 metadata=KeyMetadata(
                     key_id=packet.metadata.recipient_key_id,
                     algorithm="ML-KEM-768",
-                    created_at=datetime.now(timezone.utc),
+                    created_at=datetime.now(UTC),
                 ),
             )
             pq_secret = self._mlkem.decapsulate(recipient_mlkem_priv, ct_model)

@@ -21,7 +21,7 @@ Decapsulation   (recipient, using their own private key):
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.crypto.post_quantum import ml_kem as _ml_kem
 from src.models.key_models import (
@@ -71,7 +71,7 @@ class MLKEMService:
         metadata = KeyMetadata(
             key_id=key_id,
             algorithm=_ALGORITHM,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
         private_model = MLKEMPrivateKeyModel(raw_bytes=secret_bytes, metadata=metadata)
@@ -111,7 +111,7 @@ class MLKEMService:
         metadata = KeyMetadata(
             key_id=recipient_public_key.metadata.key_id,
             algorithm=_ALGORITHM,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
         ciphertext_model = MLKEMCiphertextModel(

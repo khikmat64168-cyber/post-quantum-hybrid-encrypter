@@ -84,7 +84,7 @@ class AESPayload:
         return d
 
     @classmethod
-    def from_dict(cls, data: dict[str, str]) -> "AESPayload":
+    def from_dict(cls, data: dict[str, str]) -> AESPayload:
         aad_b64 = data.get("aad_b64")
         return cls(
             ciphertext=base64.b64decode(data["ciphertext_b64"]),

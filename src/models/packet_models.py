@@ -16,9 +16,8 @@ from __future__ import annotations
 import base64
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
-
 
 CURRENT_VERSION = "1"
 ALGORITHM_HYBRID = "X25519+ML-KEM-768+HKDF-SHA256+AES-256-GCM"
@@ -45,7 +44,7 @@ class PacketMetadata:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, str]) -> "PacketMetadata":
+    def from_dict(cls, data: dict[str, str]) -> PacketMetadata:
         return cls(
             version=data["version"],
             algorithm=data["algorithm"],
@@ -142,7 +141,7 @@ class EncryptedPacket:
         return json.dumps(self.to_dict(), indent=indent)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "EncryptedPacket":
+    def from_dict(cls, data: dict[str, Any]) -> EncryptedPacket:
         return cls(
             metadata=PacketMetadata.from_dict(data),
             x25519_ephemeral_public_b64=data["x25519_ephemeral_public_b64"],
@@ -153,5 +152,5 @@ class EncryptedPacket:
         )
 
     @classmethod
-    def from_json(cls, json_str: str) -> "EncryptedPacket":
+    def from_json(cls, json_str: str) -> EncryptedPacket:
         return cls.from_dict(json.loads(json_str))
