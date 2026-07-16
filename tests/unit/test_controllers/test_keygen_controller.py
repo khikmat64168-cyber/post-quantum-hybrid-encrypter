@@ -7,7 +7,13 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.controllers.keygen_controller import KeygenController, KeygenResult
-from src.models.key_models import KeyMetadata, MLKEMPrivateKeyModel, MLKEMPublicKeyModel, X25519PrivateKeyModel, X25519PublicKeyModel
+from src.models.key_models import (
+    KeyMetadata,
+    MLKEMPrivateKeyModel,
+    MLKEMPublicKeyModel,
+    X25519PrivateKeyModel,
+    X25519PublicKeyModel,
+)
 
 
 def _x25519_priv(key_id: str) -> X25519PrivateKeyModel:

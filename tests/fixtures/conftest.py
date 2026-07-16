@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from src.models.config_models import AppConfig, CryptoConfig, LoggingConfig, StorageConfig
+
+from src.models.config_models import AppConfig, CryptoConfig, StorageConfig
 
 
 @pytest.fixture(scope="session")

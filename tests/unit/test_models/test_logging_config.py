@@ -1,7 +1,9 @@
 """Unit tests for the logging configuration helper."""
 
 import logging
+
 import pytest
+
 from src.utils.logging_config import configure_logging, get_logger
 
 

@@ -3,6 +3,7 @@
 import base64
 import json
 import os
+from datetime import UTC, datetime
 
 import pytest
 
@@ -21,8 +22,6 @@ from src.services.packet_service import (
     UnsupportedVersionError,
 )
 
-from datetime import datetime, timezone
-
 
 def _make_metadata(
     sender: str = "alice",
@@ -32,7 +31,7 @@ def _make_metadata(
     return PacketMetadata(
         version=CURRENT_VERSION,
         algorithm=algorithm,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         sender_key_id=sender,
         recipient_key_id=recipient,
     )
@@ -115,7 +114,7 @@ class TestValidation:
             metadata=PacketMetadata(
                 version="99",
                 algorithm=ALGORITHM_CLASSICAL,
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
                 sender_key_id="alice",
                 recipient_key_id="bob",
             ),

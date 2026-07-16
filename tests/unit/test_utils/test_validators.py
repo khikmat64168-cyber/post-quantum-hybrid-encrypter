@@ -1,6 +1,5 @@
 """Unit tests for src/utils/validators.py."""
 
-import os
 from pathlib import Path
 
 import pytest
@@ -13,7 +12,6 @@ from src.utils.validators import (
     validate_output_parent,
     validate_plaintext_not_empty,
 )
-
 
 # ------------------------------------------------------------------
 # validate_key_id

@@ -3,7 +3,7 @@
 import base64
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -24,7 +24,7 @@ def _meta(
     return PacketMetadata(
         version=CURRENT_VERSION,
         algorithm=algorithm,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         sender_key_id=sender,
         recipient_key_id=recipient,
     )
@@ -64,7 +64,7 @@ class TestPacketMetadata:
         assert restored.version == CURRENT_VERSION
 
     def test_created_at_is_preserved(self) -> None:
-        now = datetime(2025, 1, 15, 12, 0, 0, tzinfo=timezone.utc)
+        now = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
         meta = PacketMetadata(
             version=CURRENT_VERSION,
             algorithm=ALGORITHM_CLASSICAL,

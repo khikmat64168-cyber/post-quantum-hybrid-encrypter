@@ -12,8 +12,6 @@ from src.models.key_models import (
     MLKEMCiphertextModel,
     MLKEMPrivateKeyModel,
     MLKEMPublicKeyModel,
-    X25519PrivateKeyModel,
-    X25519PublicKeyModel,
 )
 from src.services.x25519_service import X25519Service
 from src.storage.key_storage import KeyStorage
