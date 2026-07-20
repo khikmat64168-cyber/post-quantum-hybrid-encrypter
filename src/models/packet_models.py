@@ -91,6 +91,8 @@ class EncryptedPacket:
     iv_b64: str
     ciphertext_b64: str
     mlkem_ciphertext_b64: str | None = None
+    signature_b64: str | None = None
+    sender_ed25519_pub_b64: str | None = None
 
     # ------------------------------------------------------------------
     # Derived byte accessors
@@ -121,6 +123,21 @@ class EncryptedPacket:
         """True when ML-KEM ciphertext is present (full hybrid mode)."""
         return self.mlkem_ciphertext_b64 is not None
 
+    @property
+    def is_signed(self) -> bool:
+        """True when both a signature and the sender's Ed25519 public key are present."""
+        return self.signature_b64 is not None and self.sender_ed25519_pub_b64 is not None
+
+    @property
+    def signature_bytes(self) -> bytes | None:
+        return base64.b64decode(self.signature_b64) if self.signature_b64 else None
+
+    @property
+    def sender_ed25519_pub_bytes(self) -> bytes | None:
+        if self.sender_ed25519_pub_b64 is None:
+            return None
+        return base64.b64decode(self.sender_ed25519_pub_b64)
+
     # ------------------------------------------------------------------
     # Serialisation
     # ------------------------------------------------------------------
@@ -135,7 +152,18 @@ class EncryptedPacket:
         }
         if self.mlkem_ciphertext_b64 is not None:
             d["mlkem_ciphertext_b64"] = self.mlkem_ciphertext_b64
+        if self.signature_b64 is not None:
+            d["signature_b64"] = self.signature_b64
+        if self.sender_ed25519_pub_b64 is not None:
+            d["sender_ed25519_pub_b64"] = self.sender_ed25519_pub_b64
         return d
+
+    def to_signable_bytes(self) -> bytes:
+        """Canonical bytes for Ed25519 signing — excludes signature fields."""
+        d = self.to_dict()
+        d.pop("signature_b64", None)
+        d.pop("sender_ed25519_pub_b64", None)
+        return json.dumps(d, indent=2, sort_keys=True).encode()
 
     def to_json(self, *, indent: int = 2) -> str:
         return json.dumps(self.to_dict(), indent=indent)
@@ -149,6 +177,8 @@ class EncryptedPacket:
             iv_b64=data["iv_b64"],
             ciphertext_b64=data["ciphertext_b64"],
             mlkem_ciphertext_b64=data.get("mlkem_ciphertext_b64"),
+            signature_b64=data.get("signature_b64"),
+            sender_ed25519_pub_b64=data.get("sender_ed25519_pub_b64"),
         )
 
     @classmethod

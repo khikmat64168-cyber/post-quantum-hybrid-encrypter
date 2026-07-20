@@ -11,13 +11,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.services.ed25519_service import SignatureVerificationError
 from src.services.encryption_orchestrator import EncryptionOrchestrator
 from src.services.packet_service import PacketService
 from src.storage.key_storage import KeyProtectedError, KeyStorage, WrongPassphraseError
 from src.utils.logging_config import get_logger
 from src.utils.validators import validate_output_parent
 
-__all__ = ["DecryptController", "DecryptResult", "KeyProtectedError", "WrongPassphraseError"]
+__all__ = [
+    "DecryptController",
+    "DecryptResult",
+    "KeyProtectedError",
+    "SignatureVerificationError",
+    "WrongPassphraseError",
+]
 
 log = get_logger(__name__)
 
@@ -30,6 +37,7 @@ class DecryptResult:
     output_path: Path
     plaintext_size: int
     algorithm: str
+    signed: bool = False
 
 
 class DecryptController:
@@ -126,4 +134,5 @@ class DecryptController:
             output_path=output_path,
             plaintext_size=len(plaintext),
             algorithm=packet.metadata.algorithm,
+            signed=packet.is_signed,
         )

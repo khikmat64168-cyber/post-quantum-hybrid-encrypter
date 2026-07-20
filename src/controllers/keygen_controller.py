@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.services.ed25519_service import Ed25519Service
 from src.services.mlkem_service import MLKEMService
 from src.services.x25519_service import X25519Service
 from src.storage.key_storage import KeyStorage
@@ -30,6 +31,8 @@ class KeygenResult:
     mlkem_private_path: Path | None
     mlkem_public_path: Path | None
     mlkem_available: bool
+    ed25519_private_path: Path
+    ed25519_public_path: Path
     protected: bool = False
 
 
@@ -40,9 +43,11 @@ class KeygenController:
         self,
         x25519_service: X25519Service | None = None,
         mlkem_service: MLKEMService | None = None,
+        ed25519_service: Ed25519Service | None = None,
     ) -> None:
         self._x25519 = x25519_service or X25519Service()
         self._mlkem = mlkem_service or MLKEMService()
+        self._ed25519 = ed25519_service or Ed25519Service()
 
     def generate(
         self, key_id: str, keys_dir: Path, passphrase: str | None = None
@@ -90,6 +95,11 @@ class KeygenController:
                 mlkem_priv_path = storage.save_mlkem_private_key(mlkem_priv)
             mlkem_pub_path = storage.save_mlkem_public_key(mlkem_pub)
 
+        # Ed25519 — always generated (no optional deps)
+        ed25519_priv, ed25519_pub = self._ed25519.generate_keypair(key_id)
+        ed25519_priv_path = storage.save_ed25519_private_key(ed25519_priv)
+        ed25519_pub_path = storage.save_ed25519_public_key(ed25519_pub)
+
         log.info(
             "keygen_controller.generate.complete",
             key_id=key_id,
@@ -104,5 +114,7 @@ class KeygenController:
             mlkem_private_path=mlkem_priv_path,
             mlkem_public_path=mlkem_pub_path,
             mlkem_available=self._mlkem.is_available(),
+            ed25519_private_path=ed25519_priv_path,
+            ed25519_public_path=ed25519_pub_path,
             protected=passphrase is not None,
         )

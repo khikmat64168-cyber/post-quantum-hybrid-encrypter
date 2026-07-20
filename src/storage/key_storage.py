@@ -22,6 +22,8 @@ from cryptography.exceptions import InvalidTag
 from src.crypto.classical import aes_gcm
 from src.crypto.classical.argon2_kdf import derive_key, new_salt
 from src.models.key_models import (
+    Ed25519PrivateKeyModel,
+    Ed25519PublicKeyModel,
     KeyMetadata,
     MLKEMCiphertextModel,
     MLKEMPrivateKeyModel,
@@ -241,6 +243,58 @@ class KeyStorage:
 
     def x25519_public_key_exists(self, key_id: str) -> bool:
         return self.x25519_public_key_path(key_id).exists()
+
+    # ------------------------------------------------------------------
+    # Ed25519 — Write
+    # ------------------------------------------------------------------
+
+    def save_ed25519_private_key(self, model: Ed25519PrivateKeyModel) -> Path:
+        """Write an Ed25519 private key with 0o600 permissions."""
+        path = self._dir / f"{model.metadata.key_id}_ed25519_private.json"
+        self._write(path, model.to_dict(), mode=_PRIVATE_MODE)
+        log.info("key_storage.save_ed25519_private_key", path=str(path))
+        return path
+
+    def save_ed25519_public_key(self, model: Ed25519PublicKeyModel) -> Path:
+        """Write an Ed25519 public key with 0o644 permissions."""
+        path = self._dir / f"{model.metadata.key_id}_ed25519_public.json"
+        self._write(path, model.to_dict(), mode=_PUBLIC_MODE)
+        log.info("key_storage.save_ed25519_public_key", path=str(path))
+        return path
+
+    # ------------------------------------------------------------------
+    # Ed25519 — Read
+    # ------------------------------------------------------------------
+
+    def load_ed25519_private_key(self, path: Path) -> Ed25519PrivateKeyModel:
+        """Deserialize an Ed25519 private key from a JSON file."""
+        data = self._read(path)
+        log.info("key_storage.load_ed25519_private_key", path=str(path))
+        return Ed25519PrivateKeyModel.from_dict(data)
+
+    def load_ed25519_public_key(self, path: Path) -> Ed25519PublicKeyModel:
+        """Deserialize an Ed25519 public key from a JSON file."""
+        data = self._read(path)
+        log.info("key_storage.load_ed25519_public_key", path=str(path))
+        return Ed25519PublicKeyModel.from_dict(data)
+
+    # ------------------------------------------------------------------
+    # Path helpers — Ed25519
+    # ------------------------------------------------------------------
+
+    def ed25519_private_key_path(self, key_id: str) -> Path:
+        validate_key_id(key_id)
+        return self._dir / f"{key_id}_ed25519_private.json"
+
+    def ed25519_public_key_path(self, key_id: str) -> Path:
+        validate_key_id(key_id)
+        return self._dir / f"{key_id}_ed25519_public.json"
+
+    def ed25519_private_key_exists(self, key_id: str) -> bool:
+        return self.ed25519_private_key_path(key_id).exists()
+
+    def ed25519_public_key_exists(self, key_id: str) -> bool:
+        return self.ed25519_public_key_path(key_id).exists()
 
     # ------------------------------------------------------------------
     # Path helpers — ML-KEM

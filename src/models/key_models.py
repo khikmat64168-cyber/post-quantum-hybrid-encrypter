@@ -233,6 +233,80 @@ class MLKEMCiphertextModel:
 
 
 # ============================================================
+# Ed25519 Models
+# ============================================================
+
+@dataclass(frozen=True)
+class Ed25519PrivateKeyModel:
+    """
+    Immutable container for an Ed25519 private key seed (32 bytes).
+
+    SECURITY: raw_bytes is hidden from __repr__ and __str__.
+    Store with 0o600 permissions; never log or print.
+    """
+
+    raw_bytes: bytes
+    metadata: KeyMetadata
+
+    def __repr__(self) -> str:
+        return f"Ed25519PrivateKeyModel(key_id={self.metadata.key_id!r}, bytes=<REDACTED>)"
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "key_type": "private",
+            "key_id": self.metadata.key_id,
+            "algorithm": self.metadata.algorithm,
+            "created_at": self.metadata.created_at.isoformat(),
+            "raw_bytes_b64": base64.b64encode(self.raw_bytes).decode(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Ed25519PrivateKeyModel:
+        return cls(
+            raw_bytes=base64.b64decode(data["raw_bytes_b64"]),
+            metadata=KeyMetadata(
+                key_id=data["key_id"],
+                algorithm=data["algorithm"],
+                created_at=datetime.fromisoformat(data["created_at"]),
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class Ed25519PublicKeyModel:
+    """Immutable container for an Ed25519 public key (32 bytes)."""
+
+    raw_bytes: bytes
+    metadata: KeyMetadata
+
+    def __repr__(self) -> str:
+        return f"Ed25519PublicKeyModel(key_id={self.metadata.key_id!r}, bytes=<32 bytes>)"
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "key_type": "public",
+            "key_id": self.metadata.key_id,
+            "algorithm": self.metadata.algorithm,
+            "created_at": self.metadata.created_at.isoformat(),
+            "raw_bytes_b64": base64.b64encode(self.raw_bytes).decode(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Ed25519PublicKeyModel:
+        return cls(
+            raw_bytes=base64.b64decode(data["raw_bytes_b64"]),
+            metadata=KeyMetadata(
+                key_id=data["key_id"],
+                algorithm=data["algorithm"],
+                created_at=datetime.fromisoformat(data["created_at"]),
+            ),
+        )
+
+
+# ============================================================
 # Shared Secret (algorithm-agnostic)
 # ============================================================
 

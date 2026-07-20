@@ -34,6 +34,7 @@ class EncryptResult:
     plaintext_size: int
     ciphertext_size: int
     algorithm: str
+    signed: bool = False
 
 
 class EncryptController:
@@ -92,6 +93,16 @@ class EncryptController:
                 storage.mlkem_public_key_path(recipient_key_id)
             )
 
+        sender_ed25519_priv = None
+        sender_ed25519_pub = None
+        if storage.ed25519_private_key_exists(sender_key_id):
+            sender_ed25519_priv = storage.load_ed25519_private_key(
+                storage.ed25519_private_key_path(sender_key_id)
+            )
+            sender_ed25519_pub = storage.load_ed25519_public_key(
+                storage.ed25519_public_key_path(sender_key_id)
+            )
+
         plaintext = input_path.read_bytes()
         validate_plaintext_not_empty(plaintext)
 
@@ -100,6 +111,7 @@ class EncryptController:
             input=str(input_path),
             recipient=recipient_key_id,
             hybrid=recipient_mlkem_pub is not None,
+            signed=sender_ed25519_priv is not None,
             plaintext_size=len(plaintext),
         )
 
@@ -109,6 +121,8 @@ class EncryptController:
             sender_key_id=sender_key_id,
             recipient_key_id=recipient_key_id,
             recipient_mlkem_pub=recipient_mlkem_pub,
+            sender_ed25519_priv=sender_ed25519_priv,
+            sender_ed25519_pub=sender_ed25519_pub,
         )
 
         self._packet.save_to_file(packet, str(output_path))
@@ -127,4 +141,5 @@ class EncryptController:
             plaintext_size=len(plaintext),
             ciphertext_size=len(packet.ciphertext_bytes),
             algorithm=packet.metadata.algorithm,
+            signed=packet.is_signed,
         )

@@ -156,6 +156,17 @@ def keygen_cmd(name: str, keys_dir: str, protect: bool) -> None:
             "—",
         )
 
+    table.add_row(
+        str(result.ed25519_private_path),
+        "Ed25519 signing key (private)",
+        Text("0600 (owner only)", style="bold yellow"),
+    )
+    table.add_row(
+        str(result.ed25519_public_path),
+        "Ed25519 signing key (public)",
+        "0644",
+    )
+
     console.print(table)
 
     mode_label = (
@@ -244,6 +255,12 @@ def encrypt_cmd(
     else:
         mode_text = Text("Classical", style="yellow")
     table.add_row("Mode", mode_text)
+    sig_text = (
+        Text("Yes (Ed25519)", style="bold green")
+        if result.signed
+        else Text("No", style="dim")
+    )
+    table.add_row("Signed", sig_text)
     table.add_row("Plaintext size", _fmt_size(result.plaintext_size))
     table.add_row("Ciphertext size", _fmt_size(result.ciphertext_size))
 
@@ -278,6 +295,7 @@ def decrypt_cmd(
     """Decrypt a hybrid-encrypted file using a private key."""
     from src.controllers.decrypt_controller import (  # noqa: PLC0415
         DecryptController,
+        SignatureVerificationError,
         WrongPassphraseError,
     )
     from src.services.aes_service import AuthenticationError  # noqa: PLC0415
@@ -307,6 +325,12 @@ def decrypt_cmd(
     except WrongPassphraseError:
         _error("Wrong passphrase — key could not be decrypted.")
         sys.exit(1)
+    except SignatureVerificationError:
+        _error(
+            "Signature verification failed — the packet signature does not match. "
+            "The packet may have been tampered with or the sender key is wrong."
+        )
+        sys.exit(1)
     except (FileNotFoundError, ValidationError) as exc:
         _error(str(exc))
         sys.exit(1)
@@ -328,6 +352,12 @@ def decrypt_cmd(
     table.add_row("Output", str(result.output_path))
     table.add_row("Recipient", recipient)
     table.add_row("Algorithm", result.algorithm)
+    sig_text = (
+        Text("Verified (Ed25519)", style="bold green")
+        if result.signed
+        else Text("None (unsigned packet)", style="dim")
+    )
+    table.add_row("Signature", sig_text)
     table.add_row("Plaintext size", _fmt_size(result.plaintext_size))
 
     console.print(table)

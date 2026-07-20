@@ -28,9 +28,13 @@ Decryption protocol (hybrid mode)
 
 from __future__ import annotations
 
+import base64
+from dataclasses import replace
 from datetime import UTC
 
 from src.models.key_models import (
+    Ed25519PrivateKeyModel,
+    Ed25519PublicKeyModel,
     MLKEMPrivateKeyModel,
     MLKEMPublicKeyModel,
     X25519PrivateKeyModel,
@@ -39,11 +43,14 @@ from src.models.key_models import (
 from src.models.packet_models import EncryptedPacket
 from src.models.payload_models import AESPayload
 from src.services.aes_service import AESService
+from src.services.ed25519_service import Ed25519Service, SignatureVerificationError
 from src.services.hkdf_service import HKDFService
 from src.services.mlkem_service import MLKEMService
 from src.services.packet_service import PacketService
 from src.services.x25519_service import X25519Service
 from src.utils.logging_config import get_logger
+
+__all__ = ["EncryptionOrchestrator", "SignatureVerificationError"]
 
 log = get_logger(__name__)
 
@@ -63,12 +70,14 @@ class EncryptionOrchestrator:
         hkdf_service: HKDFService | None = None,
         aes_service: AESService | None = None,
         packet_service: PacketService | None = None,
+        ed25519_service: Ed25519Service | None = None,
     ) -> None:
         self._x25519 = x25519_service or X25519Service()
         self._mlkem = mlkem_service or MLKEMService()
         self._hkdf = hkdf_service or HKDFService()
         self._aes = aes_service or AESService()
         self._packet = packet_service or PacketService()
+        self._ed25519 = ed25519_service or Ed25519Service()
 
     # ------------------------------------------------------------------
     # Encrypt
@@ -81,6 +90,8 @@ class EncryptionOrchestrator:
         sender_key_id: str,
         recipient_key_id: str,
         recipient_mlkem_pub: MLKEMPublicKeyModel | None = None,
+        sender_ed25519_priv: Ed25519PrivateKeyModel | None = None,
+        sender_ed25519_pub: Ed25519PublicKeyModel | None = None,
     ) -> EncryptedPacket:
         """
         Encrypt plaintext for a recipient.
@@ -158,10 +169,22 @@ class EncryptionOrchestrator:
             mlkem_ciphertext=mlkem_ciphertext_model,
         )
 
+        # Step 7: Ed25519 sign (optional)
+        if sender_ed25519_priv is not None and sender_ed25519_pub is not None:
+            message = packet.to_signable_bytes()
+            signature = self._ed25519.sign(sender_ed25519_priv, message)
+            packet = replace(
+                packet,
+                signature_b64=base64.b64encode(signature).decode(),
+                sender_ed25519_pub_b64=base64.b64encode(sender_ed25519_pub.raw_bytes).decode(),
+            )
+            log.info("orchestrator.encrypt.signed", sender=sender_key_id)
+
         log.info(
             "orchestrator.encrypt.complete",
             algorithm=algorithm,
             packet_ciphertext_size=len(aes_payload.ciphertext),
+            signed=packet.is_signed,
         )
         return packet
 
@@ -253,8 +276,25 @@ class EncryptionOrchestrator:
         )
         plaintext = self._aes.decrypt(key_material, aes_payload)
 
+        # Step 6: Ed25519 signature verification (if present)
+        if packet.is_signed:
+            sig = packet.signature_bytes
+            pub = packet.sender_ed25519_pub_bytes
+            message = packet.to_signable_bytes()
+            self._ed25519.verify(pub, message, sig)  # type: ignore[arg-type]
+            log.info(
+                "orchestrator.decrypt.signature_verified",
+                sender=packet.metadata.sender_key_id,
+            )
+        else:
+            log.warning(
+                "orchestrator.decrypt.no_signature",
+                sender=packet.metadata.sender_key_id,
+            )
+
         log.info(
             "orchestrator.decrypt.complete",
             plaintext_size=len(plaintext),
+            signed=packet.is_signed,
         )
         return plaintext
