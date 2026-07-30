@@ -5,7 +5,7 @@
 [![CI](https://github.com/khikmat64168-cyber/post-quantum-hybrid-encrypter/actions/workflows/ci.yml/badge.svg)](https://github.com/khikmat64168-cyber/post-quantum-hybrid-encrypter/actions/workflows/ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
 [![NIST FIPS 203](https://img.shields.io/badge/NIST-FIPS%20203%20ML--KEM-brightgreen.svg)](https://csrc.nist.gov/pubs/fips/203/final)
-[![Tests](https://img.shields.io/badge/tests-305%20passed-success.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-360%20passed-success.svg)](#testing)
 [![Coverage](https://img.shields.io/badge/coverage-90%25-success.svg)](#testing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
@@ -42,6 +42,8 @@
 | Post-Quantum KEM | ML-KEM-768 (Kyber) | NIST FIPS 203 | 1184 B pub, 1088 B ciphertext |
 | Key Derivation | HKDF-SHA-256 | RFC 5869 | 32 B master key |
 | Symmetric Enc | AES-256-GCM | NIST SP 800-38D | 256-bit key, 96-bit IV, 128-bit tag |
+| Digital Signature | Ed25519 | RFC 8032 | 32 B key, 64 B signature |
+| Key Protection | Argon2id + AES-256-GCM | OWASP 2024 | t=3, m=64 MiB, p=4 |
 
 ### Why Hybrid?
 
@@ -65,10 +67,11 @@ src/
 │   ├── mlkem_service.py           # ML-KEM-768 key gen, encap, decap
 │   ├── hkdf_service.py            # HKDF-SHA-256 key derivation
 │   ├── aes_service.py             # AES-256-GCM encrypt / decrypt
+│   ├── ed25519_service.py         # Ed25519 sign / verify
 │   ├── packet_service.py          # Packet assembly, validation, serialization
 │   └── encryption_orchestrator.py # Top-level encrypt / decrypt flow (DI)
 ├── crypto/
-│   ├── classical/   # Low-level X25519 + AES-GCM primitives
+│   ├── classical/   # Low-level X25519 + AES-GCM + Ed25519 + Argon2id primitives
 │   ├── post_quantum/# Low-level ML-KEM-768 wrapper (lazy import of pyoqs)
 │   └── hybrid/      # HKDF combiner
 ├── models/          # Frozen dataclasses — pure data, no I/O, no logic
@@ -87,7 +90,7 @@ tests/
 ## Encryption Flow (step-by-step)
 
 ```
-ENCRYPT(plaintext, recipient_x25519_pub, [recipient_mlkem_pub])
+ENCRYPT(plaintext, recipient_x25519_pub, [recipient_mlkem_pub], [sender_ed25519_priv])
   │
   ├─ 1. Generate ephemeral X25519 key pair  (fresh per message)
   ├─ 2. X25519 ECDH(ephemeral_priv, recipient_pub) → classical_secret (32 B)
@@ -95,7 +98,8 @@ ENCRYPT(plaintext, recipient_x25519_pub, [recipient_mlkem_pub])
   ├─ 4. HKDF-SHA-256(classical_secret ‖ pq_secret, salt, info) → master_key (32 B)
   ├─ 5. Build PacketMetadata → encode as AAD
   ├─ 6. AES-256-GCM Encrypt(master_key, plaintext, aad=AAD) → ciphertext ‖ tag
-  └─ 7. Serialize all to EncryptedPacket JSON
+  ├─ 7. Serialize all fields to EncryptedPacket JSON
+  └─ 8. Ed25519 Sign(sender_ed25519_priv, canonical_json) → embed signature [optional]
 
 DECRYPT(packet, recipient_x25519_priv, [recipient_mlkem_priv])
   │
@@ -104,7 +108,8 @@ DECRYPT(packet, recipient_x25519_priv, [recipient_mlkem_priv])
   ├─ 3. ML-KEM-768 Decapsulate(recipient_mlkem_priv, ct_from_packet) → pq_secret [if hybrid]
   ├─ 4. HKDF-SHA-256(classical_secret ‖ pq_secret, salt_from_packet, info) → master_key
   ├─ 5. Reconstruct AAD from packet metadata
-  └─ 6. AES-256-GCM Decrypt(master_key, ciphertext, aad=AAD) → plaintext
+  ├─ 6. AES-256-GCM Decrypt(master_key, ciphertext, aad=AAD) → plaintext
+  └─ 7. Ed25519 Verify(sender_pub_from_packet, canonical_json, signature) [if signed]
 ```
 
 ---
@@ -115,10 +120,12 @@ DECRYPT(packet, recipient_x25519_priv, [recipient_mlkem_priv])
 |---|---|
 | **Confidentiality** | AES-256-GCM with a fresh ephemeral X25519 key per message |
 | **Integrity** | AES-GCM 128-bit authentication tag — any ciphertext modification is detected |
+| **Authenticity** | Ed25519 signature over the canonical packet JSON — proves sender identity |
 | **Metadata binding** | Sender ID, recipient ID, version, and algorithm are bound into AES-GCM AAD |
 | **Forward secrecy** | Ephemeral X25519 key is never stored — compromise of long-term keys doesn't expose past messages |
 | **Quantum resistance** | ML-KEM-768 (CRYSTALS-Kyber, Level 3 — 192-bit classical security equivalent) |
 | **Key isolation** | Private keys stored with `0o600` permissions; never written to logs |
+| **Key protection** | Optional Argon2id + AES-256-GCM passphrase encryption for private keys at rest |
 | **Memory safety** | Shared secrets wiped via `ctypes.memset` after use |
 | **Input sanitization** | `key_id` allowlist prevents path-traversal; file-size cap prevents OOM |
 
@@ -135,23 +142,23 @@ cd post-quantum-hybrid-encrypter
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
-# 3. Install Python dependencies
-pip install -r requirements.txt
+# 3. Install as a package — makes `pqhe` available system-wide
+pip install -e .
 
-# 4. (Optional) Install liboqs for ML-KEM-768 support
-# macOS:
-brew install liboqs && pip install pyoqs
-# Linux (Ubuntu):
-# sudo apt-get install liboqs-dev && pip install pyoqs
+# 4. (Optional) Enable ML-KEM-768 / post-quantum layer
+# First install liboqs, then:
+pip install -e ".[pq]"
+# macOS: brew install liboqs
+# Linux (Ubuntu): sudo apt-get install liboqs-dev
 
 # 5. Configure environment
 cp .env.example .env             # edit as needed
 
 # 6. Verify installation
-python3 -m src.main status
+pqhe status
 ```
 
-> Without `pyoqs`, PQ-HE falls back to **X25519-only mode** automatically. All features work; the ML-KEM layer is simply skipped.
+> Without the `[pq]` extra, PQ-HE falls back to **X25519-only mode** automatically. All features — including Ed25519 signatures and passphrase-protected keys — work; the ML-KEM layer is simply skipped.
 
 ---
 
@@ -160,40 +167,53 @@ python3 -m src.main status
 ### 1. Generate a key pair
 
 ```bash
-python3 -m src.main keygen --name alice --keys-dir ./keys
+pqhe keygen --name alice --keys-dir ./keys
 ```
 
-Creates `alice_x25519_private.json` (0600) and `alice_x25519_public.json` (0644) in `./keys/`.  
-If `pyoqs` is installed, also creates `alice_mlkem_private.json` and `alice_mlkem_public.json`.
+Creates in `./keys/`:
+
+| File | Type | Permissions |
+|---|---|---|
+| `alice_x25519_private.json` | X25519 private key | 0600 |
+| `alice_x25519_public.json` | X25519 public key | 0644 |
+| `alice_ed25519_private.json` | Ed25519 signing key | 0600 |
+| `alice_ed25519_public.json` | Ed25519 verify key | 0644 |
+| `alice_mlkem_private.json` | ML-KEM-768 private key *(if pyoqs installed)* | 0600 |
+| `alice_mlkem_public.json` | ML-KEM-768 public key *(if pyoqs installed)* | 0644 |
+
+Add `--protect` to encrypt private keys with a passphrase (Argon2id + AES-256-GCM):
+
+```bash
+pqhe keygen --name alice --keys-dir ./keys --protect
+```
 
 ### 2. Encrypt a file
 
 ```bash
-python3 -m src.main encrypt secret.txt \
+pqhe encrypt secret.txt \
     --sender bob \
     --recipient alice \
     --keys-dir ./keys \
     --output secret.txt.enc
 ```
 
-Looks up `alice_x25519_public.json` (and `alice_mlkem_public.json` if present) in `./keys/`.  
-Writes a self-contained JSON packet to `secret.txt.enc`.
+Looks up Alice's public keys in `./keys/`. If Bob has an Ed25519 private key in `./keys/`, the packet is **signed** automatically. Writes a self-contained JSON packet to `secret.txt.enc`.
 
 ### 3. Decrypt a file
 
 ```bash
-python3 -m src.main decrypt secret.txt.enc \
+pqhe decrypt secret.txt.enc \
     --recipient alice \
     --keys-dir ./keys \
     --output recovered.txt
 ```
 
-Loads Alice's private key(s) from `./keys/` and writes the recovered plaintext.
+Loads Alice's private keys from `./keys/`, decrypts, and **verifies the Ed25519 signature** if present. If Alice's keys are passphrase-protected, the passphrase is prompted interactively.
 
 ### 4. System status
 
 ```bash
-python3 -m src.main status
+pqhe status
 ```
 
 Shows Python version, dependency versions, and ML-KEM availability.
@@ -211,9 +231,13 @@ Shows Python version, dependency versions, and ML-KEM availability.
   "hkdf_salt_b64": "<base64, 32 bytes>",
   "iv_b64": "<base64, 12 bytes>",
   "ciphertext_b64": "<base64, len(plaintext) + 16 bytes>",
-  "mlkem_ciphertext_b64": "<base64, 1088 bytes>"
+  "mlkem_ciphertext_b64": "<base64, 1088 bytes>",
+  "signature_b64": "<base64, 64 bytes — Ed25519 signature over canonical packet JSON>",
+  "sender_ed25519_pub_b64": "<base64, 32 bytes — sender's Ed25519 public key>"
 }
 ```
+
+`signature_b64` and `sender_ed25519_pub_b64` are absent for anonymous/unsigned packets. `mlkem_ciphertext_b64` is absent in classical (non-hybrid) mode.
 
 ---
 
@@ -232,16 +256,16 @@ python3 -m pytest --cov=src --cov-report=html
 open htmlcov/index.html
 ```
 
-**Test results:** 305 passed, 3 skipped (ML-KEM tests when pyoqs not installed), **89.87% coverage**
+**Test results:** 360 passed, 3 skipped (ML-KEM tests when pyoqs not installed), **89.59% coverage**
 
 | Test category | Count | What's covered |
 |---|---|---|
-| Crypto primitives | 47 | X25519, AES-GCM, HKDF, ML-KEM |
-| Services | 79 | All service layer logic |
+| Crypto primitives | 47 | X25519, AES-GCM, HKDF, ML-KEM, Ed25519 |
+| Services | 113 | All service logic incl. signatures + key protection |
 | Models | 57 | Frozen dataclasses, serialization, repr redaction |
 | Controllers | 40 | Keygen, encrypt, decrypt, status |
 | Utils | 43 | Validators, secure bytes, logging |
-| Integration | 27 | End-to-end flows + **security/tampering detection** |
+| Integration | 32 | End-to-end flows + **security/tampering detection** |
 
 ---
 
@@ -259,6 +283,9 @@ open htmlcov/index.html
 | 8 | Security Hardening | ✅ Complete |
 | 9 | Testing Suite | ✅ Complete |
 | 10 | Documentation & Showcase | ✅ Complete |
+| 11 | CI/CD Pipeline (GitHub Actions) | ✅ Complete |
+| 12 | Passphrase-Protected Keys (Argon2id) | ✅ Complete |
+| 13 | Ed25519 Digital Signatures + Packaging | ✅ Complete |
 
 ---
 

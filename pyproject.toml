@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "pq-he"
@@ -35,7 +35,6 @@ classifiers = [
 ]
 dependencies = [
     "cryptography>=42.0.0",
-    "pyoqs>=0.10.0",
     "argon2-cffi>=23.1.0",
     "rich>=13.7.0",
     "click>=8.1.7",
@@ -50,6 +49,9 @@ dependencies = [
 pqhe = "src.main:main"
 
 [project.optional-dependencies]
+pq = [
+    "pyoqs>=0.10.0",
+]
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
@@ -62,7 +64,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*"]
+include = ["src*", "config*"]
 
 # ----------------------------------------------------------------
 # Black
