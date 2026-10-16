@@ -131,3 +131,7 @@ $RECYCLE.BIN/
 
 
 CLAUDE.md
+# --- Local encrypt/decrypt test files ---
+xabar*.txt
+ochilgan*.txt
+*.enc

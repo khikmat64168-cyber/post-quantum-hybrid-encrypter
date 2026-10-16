@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.crypto.hybrid.hkdf import derive, generate_salt
+from pqhe.crypto.hybrid.hkdf import derive, generate_salt
 
 
 @pytest.mark.unit

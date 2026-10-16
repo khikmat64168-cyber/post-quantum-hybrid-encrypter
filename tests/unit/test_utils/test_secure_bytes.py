@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.utils.secure_bytes import wipe, wipe_bytes_copy
+from pqhe.utils.secure_bytes import wipe, wipe_bytes_copy
 
 
 @pytest.mark.unit

@@ -2,14 +2,14 @@
 Integration test — full X25519-only encrypt → decrypt flow.
 
 Tests the complete pipeline: key generation → encrypt → JSON → decrypt.
-ML-KEM variant is skipped when pyoqs is not installed.
+ML-KEM variant is skipped when liboqs-python is not installed.
 """
 
 import pytest
 
-from src.models.packet_models import EncryptedPacket
-from src.services.encryption_orchestrator import EncryptionOrchestrator
-from src.services.x25519_service import X25519Service
+from pqhe.models.packet_models import EncryptedPacket
+from pqhe.services.encryption_orchestrator import EncryptionOrchestrator
+from pqhe.services.x25519_service import X25519Service
 
 
 @pytest.fixture
@@ -68,7 +68,7 @@ class TestX25519OnlyFlow:
         _, pub = x25519.generate_keypair("bob")
         wrong_priv, _ = x25519.generate_keypair("eve")
         packet = orchestrator.encrypt(b"secret", pub, "alice", "bob")
-        from src.services.aes_service import AuthenticationError
+        from pqhe.services.aes_service import AuthenticationError
         with pytest.raises(AuthenticationError):
             orchestrator.decrypt(packet, wrong_priv)
 
@@ -101,9 +101,9 @@ class TestX25519OnlyFlow:
 @pytest.mark.integration
 class TestHybridFlow:
     def test_hybrid_flow(self, orchestrator: EncryptionOrchestrator) -> None:
-        pytest.importorskip("oqs", reason="pyoqs not installed")
-        from src.services.mlkem_service import MLKEMService
-        from src.services.x25519_service import X25519Service
+        pytest.importorskip("oqs", reason="liboqs-python not installed")
+        from pqhe.services.mlkem_service import MLKEMService
+        from pqhe.services.x25519_service import X25519Service
 
         x25519 = X25519Service()
         mlkem = MLKEMService()

@@ -1,10 +1,10 @@
-"""Unit tests for src/utils/validators.py."""
+"""Unit tests for pqhe/utils/validators.py."""
 
 from pathlib import Path
 
 import pytest
 
-from src.utils.validators import (
+from pqhe.utils.validators import (
     MAX_PLAINTEXT_BYTES,
     ValidationError,
     validate_file_size,

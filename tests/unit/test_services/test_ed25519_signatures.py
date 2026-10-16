@@ -11,15 +11,15 @@ from pathlib import Path
 import pytest
 from cryptography.exceptions import InvalidSignature
 
-from src.crypto.classical import ed25519 as _ed25519
-from src.models.key_models import Ed25519PrivateKeyModel, Ed25519PublicKeyModel
-from src.models.packet_models import (
+from pqhe.crypto.classical import ed25519 as _ed25519
+from pqhe.models.key_models import Ed25519PrivateKeyModel, Ed25519PublicKeyModel
+from pqhe.models.packet_models import (
     ALGORITHM_CLASSICAL,
     CURRENT_VERSION,
     EncryptedPacket,
     PacketMetadata,
 )
-from src.services.ed25519_service import Ed25519Service, SignatureVerificationError
+from pqhe.services.ed25519_service import Ed25519Service, SignatureVerificationError
 
 # ──────────────────────────────────────────────────────────────
 # Crypto layer — thin wrapper
@@ -211,7 +211,7 @@ class TestSignedPacket:
 @pytest.mark.unit
 class TestEd25519KeyStorage:
     def test_save_and_load_private_key(self, tmp_path: Path) -> None:
-        from src.storage.key_storage import KeyStorage  # noqa: PLC0415
+        from pqhe.storage.key_storage import KeyStorage  # noqa: PLC0415
         svc = Ed25519Service()
         priv, _ = svc.generate_keypair("alice")
         storage = KeyStorage(tmp_path)
@@ -221,7 +221,7 @@ class TestEd25519KeyStorage:
         assert loaded.metadata.key_id == "alice"
 
     def test_save_and_load_public_key(self, tmp_path: Path) -> None:
-        from src.storage.key_storage import KeyStorage  # noqa: PLC0415
+        from pqhe.storage.key_storage import KeyStorage  # noqa: PLC0415
         svc = Ed25519Service()
         _, pub = svc.generate_keypair("alice")
         storage = KeyStorage(tmp_path)
@@ -230,7 +230,7 @@ class TestEd25519KeyStorage:
         assert loaded.raw_bytes == pub.raw_bytes
 
     def test_private_key_permissions_are_0600(self, tmp_path: Path) -> None:
-        from src.storage.key_storage import KeyStorage  # noqa: PLC0415
+        from pqhe.storage.key_storage import KeyStorage  # noqa: PLC0415
         svc = Ed25519Service()
         priv, _ = svc.generate_keypair("alice")
         storage = KeyStorage(tmp_path)
@@ -238,7 +238,7 @@ class TestEd25519KeyStorage:
         assert oct(path.stat().st_mode)[-3:] == "600"
 
     def test_public_key_permissions_are_0644(self, tmp_path: Path) -> None:
-        from src.storage.key_storage import KeyStorage  # noqa: PLC0415
+        from pqhe.storage.key_storage import KeyStorage  # noqa: PLC0415
         svc = Ed25519Service()
         _, pub = svc.generate_keypair("alice")
         storage = KeyStorage(tmp_path)
@@ -246,7 +246,7 @@ class TestEd25519KeyStorage:
         assert oct(path.stat().st_mode)[-3:] == "644"
 
     def test_ed25519_private_key_exists_true(self, tmp_path: Path) -> None:
-        from src.storage.key_storage import KeyStorage  # noqa: PLC0415
+        from pqhe.storage.key_storage import KeyStorage  # noqa: PLC0415
         svc = Ed25519Service()
         priv, _ = svc.generate_keypair("alice")
         storage = KeyStorage(tmp_path)
@@ -254,7 +254,7 @@ class TestEd25519KeyStorage:
         assert storage.ed25519_private_key_exists("alice") is True
 
     def test_ed25519_private_key_exists_false(self, tmp_path: Path) -> None:
-        from src.storage.key_storage import KeyStorage  # noqa: PLC0415
+        from pqhe.storage.key_storage import KeyStorage  # noqa: PLC0415
         storage = KeyStorage(tmp_path)
         assert storage.ed25519_private_key_exists("nobody") is False
 
@@ -264,8 +264,8 @@ class TestEd25519KeyStorage:
 # ──────────────────────────────────────────────────────────────
 
 def _orch_setup() -> tuple:  # type: ignore[type-arg]
-    from src.services.encryption_orchestrator import EncryptionOrchestrator  # noqa: PLC0415
-    from src.services.x25519_service import X25519Service  # noqa: PLC0415
+    from pqhe.services.encryption_orchestrator import EncryptionOrchestrator  # noqa: PLC0415
+    from pqhe.services.x25519_service import X25519Service  # noqa: PLC0415
     x25519_svc = X25519Service()
     ed_svc = Ed25519Service()
     recipient_priv, recipient_pub = x25519_svc.generate_keypair("bob")
@@ -277,8 +277,8 @@ def _orch_setup() -> tuple:  # type: ignore[type-arg]
 @pytest.mark.unit
 class TestSignedEncryption:
     def test_unsigned_packet_has_no_signature(self) -> None:
-        from src.services.encryption_orchestrator import EncryptionOrchestrator  # noqa: PLC0415
-        from src.services.x25519_service import X25519Service  # noqa: PLC0415
+        from pqhe.services.encryption_orchestrator import EncryptionOrchestrator  # noqa: PLC0415
+        from pqhe.services.x25519_service import X25519Service  # noqa: PLC0415
         _, pub = X25519Service().generate_keypair("bob")
         orch = EncryptionOrchestrator()
         packet = orch.encrypt(

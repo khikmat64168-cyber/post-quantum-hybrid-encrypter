@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.models.config_models import AppConfig, CryptoConfig, StorageConfig
+from pqhe.models.config_models import AppConfig, CryptoConfig, StorageConfig
 
 
 @pytest.fixture(scope="session")

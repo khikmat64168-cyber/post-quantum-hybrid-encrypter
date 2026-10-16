@@ -2,14 +2,14 @@
 
 import pytest
 
-from src.models.config_models import AppConfig, CryptoConfig, LoggingConfig, StorageConfig
+from pqhe.models.config_models import AppConfig, CryptoConfig, LoggingConfig, StorageConfig
 
 
 @pytest.mark.unit
 class TestCryptoConfig:
     def test_defaults(self) -> None:
         cfg = CryptoConfig()
-        assert cfg.kem_algorithm == "Kyber768"
+        assert cfg.kem_algorithm == "ML-KEM-768"
         assert cfg.hkdf_length == 32
         assert cfg.aes_key_size == 32
         assert cfg.aes_tag_length == 16

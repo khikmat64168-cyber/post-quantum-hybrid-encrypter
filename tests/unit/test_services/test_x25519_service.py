@@ -2,12 +2,12 @@
 
 import pytest
 
-from src.models.key_models import (
+from pqhe.models.key_models import (
     SharedSecretModel,
     X25519PrivateKeyModel,
     X25519PublicKeyModel,
 )
-from src.services.x25519_service import X25519Service
+from pqhe.services.x25519_service import X25519Service
 
 
 @pytest.fixture

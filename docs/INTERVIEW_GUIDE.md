@@ -97,7 +97,7 @@ PQ-HE generates a **fresh ephemeral X25519 key pair for every encryption**. The 
 
 **Short answer:** Best-effort wiping via `ctypes.memset`; inherently limited by Python.
 
-`src/utils/secure_bytes.py` provides `wipe(bytearray)`, which calls `ctypes.memset` to zero the backing memory in-place. This works for `bytearray` objects.
+`pqhe/utils/secure_bytes.py` provides `wipe(bytearray)`, which calls `ctypes.memset` to zero the backing memory in-place. This works for `bytearray` objects.
 
 Limitations:
 - Python's `bytes` type is immutable and cannot be wiped.
@@ -122,31 +122,31 @@ The tradeoff: you can't update a field in-place. For immutable cryptographic mat
 
 ---
 
-## Q9: Why lazy-import `pyoqs`?
+## Q9: Why lazy-import `liboqs-python`?
 
 **Short answer:** Graceful degradation — the tool should work without ML-KEM support.
 
-`pyoqs` requires `liboqs` (a C library). Not every environment has it installed. If we imported `oqs` at module load time, the entire application would crash on import.
+`liboqs-python` requires `liboqs` (a C library). Not every environment has it installed. If we imported `oqs` at module load time, the entire application would crash on import — and liboqs-python signals a missing native library with `SystemExit`, not `ImportError`, so a plain `try/except ImportError` around a top-level import is not enough.
 
 The lazy import pattern:
 ```python
-_OQS_AVAILABLE = False
-try:
-    import oqs as _oqs
-    _OQS_AVAILABLE = True
-except ImportError:
-    pass
+@functools.cache
+def _load_oqs() -> Any:
+    try:
+        import oqs
+    except (ImportError, OSError, RuntimeError, SystemExit):
+        return None
+    return oqs
 
 def generate_keypair():
-    if not _OQS_AVAILABLE:
-        raise RuntimeError("pyoqs is not installed. Install liboqs + pyoqs.")
+    oqs = _require_oqs()   # raises a clear ImportError with install steps
     ...
 ```
 
 This way:
 - `pqhe status` works and shows "ML-KEM: missing" with install instructions.
 - `pqhe keygen` and `pqhe encrypt/decrypt` work in X25519-only mode.
-- ML-KEM features activate automatically when pyoqs is installed.
+- ML-KEM features activate automatically when liboqs-python is installed.
 
 ---
 

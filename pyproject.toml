@@ -22,7 +22,7 @@ keywords = [
     "security",
 ]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
     "Topic :: Security :: Cryptography",
@@ -46,11 +46,11 @@ dependencies = [
 ]
 
 [project.scripts]
-pqhe = "src.main:main"
+pqhe = "pqhe.main:main"
 
 [project.optional-dependencies]
 pq = [
-    "pyoqs>=0.10.0",
+    "liboqs-python>=0.14.0",
 ]
 dev = [
     "pytest>=7.4.0",
@@ -64,7 +64,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*", "config*"]
+include = ["pqhe*"]
 
 # ----------------------------------------------------------------
 # Black
@@ -80,7 +80,7 @@ include = '\.pyi?$'
 [tool.isort]
 profile = "black"
 line_length = 100
-known_first_party = ["src"]
+known_first_party = ["pqhe"]
 
 # ----------------------------------------------------------------
 # Ruff
@@ -141,7 +141,7 @@ addopts = [
     "--strict-markers",
     "--tb=short",
     "-v",
-    "--cov=src",
+    "--cov=pqhe",
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
     "--cov-fail-under=80",
@@ -156,8 +156,8 @@ markers = [
 # Coverage
 # ----------------------------------------------------------------
 [tool.coverage.run]
-source = ["src"]
-omit = ["tests/*", "src/main.py"]
+source = ["pqhe"]
+omit = ["tests/*", "pqhe/main.py"]
 
 [tool.coverage.report]
 exclude_lines = [

@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from src.models.packet_models import (
+from pqhe.models.packet_models import (
     ALGORITHM_CLASSICAL,
     ALGORITHM_HYBRID,
     CURRENT_VERSION,

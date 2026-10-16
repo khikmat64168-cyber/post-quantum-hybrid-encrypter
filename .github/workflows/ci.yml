@@ -28,10 +28,10 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: ruff — lint
-        run: ruff check src/ tests/
+        run: ruff check pqhe/ tests/
 
       - name: mypy — type check
-        run: mypy src/
+        run: mypy pqhe/
 
   # ──────────────────────────────────────────────────────────────
   # Job 2: Test matrix
@@ -57,6 +57,21 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      # liboqs-python builds the native liboqs into ~/_oqs on first import.
+      # Cache it so only the first run per liboqs-python version pays for the build.
+      - name: Get liboqs-python version
+        id: oqs
+        run: echo "version=$(pip show liboqs-python | awk '/^Version/{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/_oqs
+          key: liboqs-${{ runner.os }}-${{ steps.oqs.outputs.version }}
+
+      # Fail fast if ML-KEM-768 is unusable, so the PQ tests can never be silently skipped.
+      - name: Build liboqs and verify ML-KEM-768
+        run: python -c "from pqhe.crypto.post_quantum import ml_kem; assert ml_kem.is_available(), 'ML-KEM-768 unavailable'"
 
       - name: Unit tests
         run: pytest -m unit --no-cov

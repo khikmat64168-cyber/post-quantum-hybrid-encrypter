@@ -5,7 +5,7 @@ import os
 import pytest
 from cryptography.exceptions import InvalidTag
 
-from src.crypto.classical.aes_gcm import (
+from pqhe.crypto.classical.aes_gcm import (
     IV_SIZE,
     KEY_SIZE,
     TAG_SIZE,

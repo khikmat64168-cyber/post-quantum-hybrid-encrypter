@@ -24,7 +24,7 @@
 | **Attacker with write access to `.enc` files** | Can tamper with ciphertext/metadata | ✅ Yes — AES-GCM tag + AAD detect tampering |
 | **Attacker with full OS compromise** | Can dump process memory | ❌ Out of scope (OS security boundary) |
 | **Side-channel attacker** | Timing, power, EM attacks on key operations | ❌ Out of scope (library-level concern) |
-| **Supply chain attacker** | Compromises `cryptography` or `pyoqs` packages | ❌ Out of scope |
+| **Supply chain attacker** | Compromises `cryptography` or `liboqs-python` packages | ❌ Out of scope |
 
 ---
 
@@ -134,7 +134,7 @@
 | Threat | Reason out of scope |
 |---|---|
 | Process memory dump | Requires OS-level attacker; beyond the application security boundary |
-| Side-channel attacks | Delegated to `cryptography` / `pyoqs` library implementations |
+| Side-channel attacks | Delegated to `cryptography` / `liboqs-python` library implementations |
 | Key compromise by malware | Physical/OS security; not an application-layer concern |
 | Supply chain (pypi packages) | Use lockfiles and verify hashes in production deployments |
 | Social engineering | Human-factor attack; out of scope for this tool |
@@ -150,7 +150,7 @@
 | Integrity | ✅ | AES-GCM 128-bit authentication tag |
 | Authenticity of metadata | ✅ | AAD binding via `PacketMetadata.make_aad()` |
 | Forward secrecy | ✅ | Ephemeral X25519 key per message |
-| Post-quantum resilience | ✅ (when pyoqs installed) | ML-KEM-768 (NIST FIPS 203) |
+| Post-quantum resilience | ✅ (when liboqs-python installed) | ML-KEM-768 (NIST FIPS 203) |
 | Non-repudiation | ❌ | No signatures — not in scope |
 | Key revocation | ❌ | No PKI infrastructure — not in scope |
 | Multi-recipient encryption | ❌ | One recipient per packet — by design |

@@ -1,6 +1,6 @@
 """Root conftest — configures logging for the test session."""
 
-from src.utils.logging_config import configure_logging
+from pqhe.utils.logging_config import configure_logging
 
 
 def pytest_configure() -> None:

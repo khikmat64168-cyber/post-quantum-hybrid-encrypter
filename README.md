@@ -5,7 +5,7 @@
 [![CI](https://github.com/khikmat64168-cyber/post-quantum-hybrid-encrypter/actions/workflows/ci.yml/badge.svg)](https://github.com/khikmat64168-cyber/post-quantum-hybrid-encrypter/actions/workflows/ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
 [![NIST FIPS 203](https://img.shields.io/badge/NIST-FIPS%20203%20ML--KEM-brightgreen.svg)](https://csrc.nist.gov/pubs/fips/203/final)
-[![Tests](https://img.shields.io/badge/tests-360%20passed-success.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-398%20passed-success.svg)](#testing)
 [![Coverage](https://img.shields.io/badge/coverage-90%25-success.svg)](#testing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
@@ -39,7 +39,7 @@
 | Layer | Algorithm | Standard | Key / Output Size |
 |---|---|---|---|
 | Classical KE | X25519 (ECDH over Curve25519) | RFC 7748 | 32 B public key, 32 B secret |
-| Post-Quantum KEM | ML-KEM-768 (Kyber) | NIST FIPS 203 | 1184 B pub, 1088 B ciphertext |
+| Post-Quantum KEM | ML-KEM-768 | NIST FIPS 203 | 1184 B pub, 1088 B ciphertext |
 | Key Derivation | HKDF-SHA-256 | RFC 5869 | 32 B master key |
 | Symmetric Enc | AES-256-GCM | NIST SP 800-38D | 256-bit key, 96-bit IV, 128-bit tag |
 | Digital Signature | Ed25519 | RFC 8032 | 32 B key, 64 B signature |
@@ -59,7 +59,7 @@ NIST finalized ML-KEM in August 2024 (FIPS 203). During the transition period, b
 PQ-HE follows a strict **MVC + Clean Architecture** pattern:
 
 ```
-src/
+pqhe/
 ├── views/           # CLI rendering (Rich + Click) — no crypto, no business logic
 ├── controllers/     # Application flow — orchestrates services, validates input
 ├── services/        # All cryptographic business logic
@@ -72,12 +72,12 @@ src/
 │   └── encryption_orchestrator.py # Top-level encrypt / decrypt flow (DI)
 ├── crypto/
 │   ├── classical/   # Low-level X25519 + AES-GCM + Ed25519 + Argon2id primitives
-│   ├── post_quantum/# Low-level ML-KEM-768 wrapper (lazy import of pyoqs)
+│   ├── post_quantum/# Low-level ML-KEM-768 wrapper (lazy import of liboqs-python)
 │   └── hybrid/      # HKDF combiner
 ├── models/          # Frozen dataclasses — pure data, no I/O, no logic
 ├── storage/         # Filesystem key persistence (0o600 / 0o644 permissions)
 ├── utils/           # Logging, input validators, secure memory wipe
-config/              # Pydantic-settings — typed configuration from .env
+└── config/          # Pydantic-settings — typed configuration from .env
 tests/
 ├── unit/            # 278 unit tests (crypto, services, models, controllers)
 └── integration/     # 27 integration tests (end-to-end + security/tampering)
@@ -123,7 +123,7 @@ DECRYPT(packet, recipient_x25519_priv, [recipient_mlkem_priv])
 | **Authenticity** | Ed25519 signature over the canonical packet JSON — proves sender identity |
 | **Metadata binding** | Sender ID, recipient ID, version, and algorithm are bound into AES-GCM AAD |
 | **Forward secrecy** | Ephemeral X25519 key is never stored — compromise of long-term keys doesn't expose past messages |
-| **Quantum resistance** | ML-KEM-768 (CRYSTALS-Kyber, Level 3 — 192-bit classical security equivalent) |
+| **Quantum resistance** | ML-KEM-768 (standardised from CRYSTALS-Kyber, Level 3 — 192-bit classical security equivalent) |
 | **Key isolation** | Private keys stored with `0o600` permissions; never written to logs |
 | **Key protection** | Optional Argon2id + AES-256-GCM passphrase encryption for private keys at rest |
 | **Memory safety** | Shared secrets wiped via `ctypes.memset` after use |
@@ -146,10 +146,10 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e .
 
 # 4. (Optional) Enable ML-KEM-768 / post-quantum layer
-# First install liboqs, then:
 pip install -e ".[pq]"
-# macOS: brew install liboqs
-# Linux (Ubuntu): sudo apt-get install liboqs-dev
+# liboqs-python needs the native liboqs library. If it is not found, the first
+# `import oqs` clones and builds liboqs into ~/_oqs (requires git, cmake and a C compiler).
+# Or install it yourself first — macOS: brew install liboqs
 
 # 5. Configure environment
 cp .env.example .env             # edit as needed
@@ -178,8 +178,8 @@ Creates in `./keys/`:
 | `alice_x25519_public.json` | X25519 public key | 0644 |
 | `alice_ed25519_private.json` | Ed25519 signing key | 0600 |
 | `alice_ed25519_public.json` | Ed25519 verify key | 0644 |
-| `alice_mlkem_private.json` | ML-KEM-768 private key *(if pyoqs installed)* | 0600 |
-| `alice_mlkem_public.json` | ML-KEM-768 public key *(if pyoqs installed)* | 0644 |
+| `alice_mlkem_private.json` | ML-KEM-768 private key *(if liboqs-python installed)* | 0600 |
+| `alice_mlkem_public.json` | ML-KEM-768 public key *(if liboqs-python installed)* | 0644 |
 
 Add `--protect` to encrypt private keys with a passphrase (Argon2id + AES-256-GCM):
 
@@ -252,11 +252,11 @@ python3 -m pytest -m unit
 python3 -m pytest -m integration
 
 # With coverage report
-python3 -m pytest --cov=src --cov-report=html
+python3 -m pytest --cov=pqhe --cov-report=html
 open htmlcov/index.html
 ```
 
-**Test results:** 360 passed, 3 skipped (ML-KEM tests when pyoqs not installed), **89.59% coverage**
+**Test results:** 398 passed with liboqs installed (ML-KEM tests are skipped without it), **89% coverage**
 
 | Test category | Count | What's covered |
 |---|---|---|
@@ -293,7 +293,7 @@ open htmlcov/index.html
 
 - **Python 3.12+** — pattern matching, `tomllib`, stricter type hints
 - **cryptography** — X25519, AES-256-GCM, HKDF (backed by OpenSSL)
-- **pyoqs / liboqs** — ML-KEM-768 (CRYSTALS-Kyber, NIST FIPS 203)
+- **liboqs-python / liboqs** — ML-KEM-768 (NIST FIPS 203)
 - **Click** — CLI framework
 - **Rich** — terminal UI (tables, panels, banners)
 - **Pydantic Settings** — typed configuration from environment variables

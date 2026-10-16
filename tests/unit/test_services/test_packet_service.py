@@ -7,16 +7,16 @@ from datetime import UTC, datetime
 
 import pytest
 
-from src.models.key_models import KeyMetadata, X25519PublicKeyModel
-from src.models.packet_models import (
+from pqhe.models.key_models import KeyMetadata, X25519PublicKeyModel
+from pqhe.models.packet_models import (
     ALGORITHM_CLASSICAL,
     ALGORITHM_HYBRID,
     CURRENT_VERSION,
     EncryptedPacket,
     PacketMetadata,
 )
-from src.models.payload_models import AESPayload, HybridKeyMaterial
-from src.services.packet_service import (
+from pqhe.models.payload_models import AESPayload, HybridKeyMaterial
+from pqhe.services.packet_service import (
     PacketService,
     PacketValidationError,
     UnsupportedVersionError,

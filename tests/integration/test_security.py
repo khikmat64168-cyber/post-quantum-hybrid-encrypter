@@ -21,13 +21,13 @@ import base64
 
 import pytest
 
-from src.models.packet_models import (
+from pqhe.models.packet_models import (
     EncryptedPacket,
     PacketMetadata,
 )
-from src.services.aes_service import AuthenticationError
-from src.services.encryption_orchestrator import EncryptionOrchestrator
-from src.services.x25519_service import X25519Service
+from pqhe.services.aes_service import AuthenticationError
+from pqhe.services.encryption_orchestrator import EncryptionOrchestrator
+from pqhe.services.x25519_service import X25519Service
 
 
 @pytest.fixture

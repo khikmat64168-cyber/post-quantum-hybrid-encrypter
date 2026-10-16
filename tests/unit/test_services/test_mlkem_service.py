@@ -1,23 +1,23 @@
 """
 Unit tests for the ML-KEM-768 service layer.
 
-All tests are skipped automatically if pyoqs/liboqs is not installed.
+All tests are skipped automatically if liboqs-python is not installed.
 To install:
     brew install liboqs   (macOS)
-    pip install pyoqs
+    pip install liboqs-python
 """
 
 import pytest
 
-pytest.importorskip("oqs", reason="pyoqs/liboqs not installed — skipping ML-KEM tests")
+pytest.importorskip("oqs", reason="liboqs-python not installed — skipping ML-KEM tests")
 
-from src.models.key_models import (  # noqa: E402
+from pqhe.models.key_models import (  # noqa: E402
     MLKEMCiphertextModel,
     MLKEMPrivateKeyModel,
     MLKEMPublicKeyModel,
     SharedSecretModel,
 )
-from src.services.mlkem_service import MLKEMService  # noqa: E402
+from pqhe.services.mlkem_service import MLKEMService  # noqa: E402
 
 
 @pytest.fixture

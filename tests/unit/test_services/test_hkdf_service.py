@@ -2,9 +2,9 @@
 
 import pytest
 
-from src.models.key_models import SharedSecretModel
-from src.models.payload_models import HybridKeyMaterial
-from src.services.hkdf_service import HKDFService
+from pqhe.models.key_models import SharedSecretModel
+from pqhe.models.payload_models import HybridKeyMaterial
+from pqhe.services.hkdf_service import HKDFService
 
 
 def _make_secret(algo: str = "X25519-ECDH") -> SharedSecretModel:
@@ -130,7 +130,7 @@ class TestDeriveWithSalt:
         classical_secret: SharedSecretModel,
         pq_secret: SharedSecretModel,
     ) -> None:
-        from src.crypto.hybrid.hkdf import generate_salt
+        from pqhe.crypto.hybrid.hkdf import generate_salt
         r1 = service.derive(classical_secret, pq_secret)
         r2 = service.derive_with_salt(classical_secret, pq_secret, salt=generate_salt())
         assert r1.master_key != r2.master_key
@@ -140,7 +140,7 @@ class TestDeriveWithSalt:
     ) -> None:
         s1 = _make_secret("X25519-ECDH")
         s2 = _make_secret("X25519-ECDH")
-        from src.crypto.hybrid.hkdf import generate_salt
+        from pqhe.crypto.hybrid.hkdf import generate_salt
         salt = generate_salt()
         r1 = service.derive_with_salt(s1, pq_secret, salt=salt)
         r2 = service.derive_with_salt(s2, pq_secret, salt=salt)
@@ -151,7 +151,7 @@ class TestDeriveWithSalt:
     ) -> None:
         s1 = _make_secret("ML-KEM-768")
         s2 = _make_secret("ML-KEM-768")
-        from src.crypto.hybrid.hkdf import generate_salt
+        from pqhe.crypto.hybrid.hkdf import generate_salt
         salt = generate_salt()
         r1 = service.derive_with_salt(classical_secret, s1, salt=salt)
         r2 = service.derive_with_salt(classical_secret, s2, salt=salt)

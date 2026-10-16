@@ -3,7 +3,7 @@ Integration tests for the CLI — exercises full keygen → encrypt → decrypt 
 through Click's CliRunner.
 
 These tests verify that the CLI wiring is correct end-to-end.
-ML-KEM variant is skipped when pyoqs is not installed.
+ML-KEM variant is skipped when liboqs-python is not installed.
 """
 
 from pathlib import Path
@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from src.views.cli_view import cli
+from pqhe.views.cli_view import cli
 
 
 @pytest.mark.integration

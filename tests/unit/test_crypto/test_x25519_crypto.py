@@ -3,7 +3,7 @@
 import pytest
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 
-from src.crypto.classical import x25519 as _x25519
+from pqhe.crypto.classical import x25519 as _x25519
 
 
 @pytest.mark.unit

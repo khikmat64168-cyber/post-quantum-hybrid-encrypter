@@ -8,15 +8,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.controllers.encrypt_controller import EncryptController, EncryptResult
-from src.models.packet_models import (
+from pqhe.controllers.encrypt_controller import EncryptController, EncryptResult
+from pqhe.models.packet_models import (
     ALGORITHM_CLASSICAL,
     CURRENT_VERSION,
     EncryptedPacket,
     PacketMetadata,
 )
-from src.services.x25519_service import X25519Service
-from src.storage.key_storage import KeyStorage
+from pqhe.services.x25519_service import X25519Service
+from pqhe.storage.key_storage import KeyStorage
 
 
 def _dummy_packet(sender: str = "alice", recipient: str = "bob") -> EncryptedPacket:
@@ -164,7 +164,7 @@ class TestEncryptController:
             )
 
     def test_encrypt_empty_file_raises(self, keys_dir: Path, tmp_path: Path) -> None:
-        from src.utils.validators import ValidationError
+        from pqhe.utils.validators import ValidationError
         empty = tmp_path / "empty.txt"
         empty.write_bytes(b"")
         ctrl = EncryptController()
@@ -180,7 +180,7 @@ class TestEncryptController:
     def test_encrypt_nonexistent_output_parent_raises(
         self, keys_dir: Path, input_file: Path, tmp_path: Path
     ) -> None:
-        from src.utils.validators import ValidationError
+        from pqhe.utils.validators import ValidationError
         ctrl = EncryptController()
         with pytest.raises((FileNotFoundError, ValidationError)):
             ctrl.encrypt_file(

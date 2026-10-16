@@ -1,18 +1,18 @@
 """
 Unit tests for the low-level ML-KEM-768 crypto wrapper.
 
-All tests in this file are skipped automatically if pyoqs/liboqs is not installed.
+All tests in this file are skipped automatically if liboqs-python is not installed.
 To install:
     brew install liboqs   (macOS)
-    pip install pyoqs
+    pip install liboqs-python
 """
 
 import pytest
 
-# Skip entire module if pyoqs is not available
-pytest.importorskip("oqs", reason="pyoqs/liboqs not installed — skipping ML-KEM tests")
+# Skip entire module if liboqs-python is not available
+pytest.importorskip("oqs", reason="liboqs-python not installed — skipping ML-KEM tests")
 
-from src.crypto.post_quantum import ml_kem as _ml_kem  # noqa: E402
+from pqhe.crypto.post_quantum import ml_kem as _ml_kem  # noqa: E402
 
 
 @pytest.mark.unit

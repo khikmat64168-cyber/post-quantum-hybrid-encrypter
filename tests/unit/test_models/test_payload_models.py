@@ -5,7 +5,7 @@ import os
 
 import pytest
 
-from src.models.payload_models import AESPayload, HybridKeyMaterial
+from pqhe.models.payload_models import AESPayload, HybridKeyMaterial
 
 # ------------------------------------------------------------------
 # HybridKeyMaterial

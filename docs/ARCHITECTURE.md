@@ -43,7 +43,7 @@
 │  classical/x25519.py    — X25519 ECDH                          │
 │  classical/aes_gcm.py   — AES-256-GCM                         │
 │  hybrid/hkdf.py         — HKDF-SHA-256                        │
-│  post_quantum/ml_kem.py — ML-KEM-768 (lazy import of pyoqs)   │
+│  post_quantum/ml_kem.py — ML-KEM-768 (lazy liboqs-python)      │
 └────────────────────────────────────────────────────────────────┘
 
 Models flow between all layers as immutable frozen dataclasses.
@@ -67,7 +67,7 @@ Step 2 — Classical ECDH
 Step 3 — Post-quantum KEM (optional)
   MLKEMService.encapsulate(recipient_mlkem_pub)
   → (mlkem_ciphertext: MLKEMCiphertextModel, pq_secret: SharedSecretModel)
-  [skipped if pyoqs unavailable or recipient_mlkem_pub is None]
+  [skipped if liboqs-python unavailable or recipient_mlkem_pub is None]
 
 Step 4 — Hybrid key derivation
   HKDFService.derive_hybrid(classical_secret, pq_secret=None|SharedSecretModel)
@@ -217,6 +217,6 @@ All configuration comes from environment variables (`.env` file) prefixed `PQHE_
 | `PQHE_LOG_FORMAT` | `json` | `json` or `console` |
 | `PQHE_LOG_DIR` | `./logs` | Log file directory |
 | `PQHE_ENV` | `development` | `development` or `production` |
-| `PQHE_KEM_ALGORITHM` | `Kyber768` | ML-KEM variant (for pyoqs) |
+| `PQHE_KEM_ALGORITHM` | `ML-KEM-768` | liboqs KEM identifier (NIST FIPS 203) |
 
 Pydantic-settings validates types and raises on startup if required vars are missing.

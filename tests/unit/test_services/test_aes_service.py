@@ -4,8 +4,8 @@ import os
 
 import pytest
 
-from src.models.payload_models import AESPayload, HybridKeyMaterial
-from src.services.aes_service import AESService, AuthenticationError
+from pqhe.models.payload_models import AESPayload, HybridKeyMaterial
+from pqhe.services.aes_service import AESService, AuthenticationError
 
 
 def _make_key_material(master_key: bytes | None = None) -> HybridKeyMaterial:

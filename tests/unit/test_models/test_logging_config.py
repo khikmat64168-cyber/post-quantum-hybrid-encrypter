@@ -4,7 +4,7 @@ import logging
 
 import pytest
 
-from src.utils.logging_config import configure_logging, get_logger
+from pqhe.utils.logging_config import configure_logging, get_logger
 
 
 @pytest.mark.unit

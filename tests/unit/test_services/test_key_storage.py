@@ -7,15 +7,15 @@ from pathlib import Path
 
 import pytest
 
-from src.models.key_models import (
+from pqhe.models.key_models import (
     KeyMetadata,
     MLKEMCiphertextModel,
     MLKEMPrivateKeyModel,
     MLKEMPublicKeyModel,
 )
-from src.services.x25519_service import X25519Service
-from src.storage.key_storage import KeyStorage
-from src.utils.validators import ValidationError
+from pqhe.services.x25519_service import X25519Service
+from pqhe.storage.key_storage import KeyStorage
+from pqhe.utils.validators import ValidationError
 
 
 def _mlkem_priv(key_id: str) -> MLKEMPrivateKeyModel:
@@ -223,20 +223,20 @@ class TestPathTraversalPrevention:
 @pytest.mark.unit
 class TestSecureBytes:
     def test_wipe_zeroes_bytearray(self) -> None:
-        from src.utils.secure_bytes import wipe
+        from pqhe.utils.secure_bytes import wipe
 
         buf = bytearray(b"\xff" * 32)
         wipe(buf)
         assert buf == bytearray(32)
 
     def test_wipe_rejects_bytes(self) -> None:
-        from src.utils.secure_bytes import wipe
+        from pqhe.utils.secure_bytes import wipe
 
         with pytest.raises(TypeError):
             wipe(b"\xff" * 32)  # type: ignore[arg-type]
 
     def test_wipe_bytes_copy(self) -> None:
-        from src.utils.secure_bytes import wipe, wipe_bytes_copy
+        from pqhe.utils.secure_bytes import wipe, wipe_bytes_copy
 
         secret = b"\xde\xad\xbe\xef"
         mutable = wipe_bytes_copy(secret)

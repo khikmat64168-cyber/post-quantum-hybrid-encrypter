@@ -8,16 +8,16 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.controllers.decrypt_controller import DecryptController, DecryptResult
-from src.models.packet_models import (
+from pqhe.controllers.decrypt_controller import DecryptController, DecryptResult
+from pqhe.models.packet_models import (
     ALGORITHM_CLASSICAL,
     CURRENT_VERSION,
     EncryptedPacket,
     PacketMetadata,
 )
-from src.services.aes_service import AuthenticationError
-from src.services.x25519_service import X25519Service
-from src.storage.key_storage import KeyStorage
+from pqhe.services.aes_service import AuthenticationError
+from pqhe.services.x25519_service import X25519Service
+from pqhe.storage.key_storage import KeyStorage
 
 
 def _dummy_packet(algorithm: str = ALGORITHM_CLASSICAL) -> EncryptedPacket:
@@ -156,7 +156,7 @@ class TestDecryptController:
     def test_decrypt_nonexistent_output_parent_raises(
         self, keys_dir: Path, packet_file: Path, tmp_path: Path
     ) -> None:
-        from src.utils.validators import ValidationError
+        from pqhe.utils.validators import ValidationError
         ctrl = DecryptController()
         with pytest.raises((FileNotFoundError, ValidationError)):
             ctrl.decrypt_file(

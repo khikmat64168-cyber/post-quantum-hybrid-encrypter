@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from src.models.key_models import X25519PrivateKeyModel
-from src.services.x25519_service import X25519Service
-from src.storage.key_storage import (
+from pqhe.models.key_models import X25519PrivateKeyModel
+from pqhe.services.x25519_service import X25519Service
+from pqhe.storage.key_storage import (
     KeyProtectedError,
     KeyStorage,
     WrongPassphraseError,
@@ -168,19 +168,19 @@ class TestProtectedKeyStorage:
 @pytest.mark.unit
 class TestKeygenWithPassphrase:
     def test_generate_with_passphrase_sets_protected_flag(self, tmp_path: Path) -> None:
-        from src.controllers.keygen_controller import KeygenController
+        from pqhe.controllers.keygen_controller import KeygenController
         ctrl = KeygenController()
         result = ctrl.generate("alice", tmp_path, passphrase="secret")
         assert result.protected is True
 
     def test_generate_without_passphrase_unprotected(self, tmp_path: Path) -> None:
-        from src.controllers.keygen_controller import KeygenController
+        from pqhe.controllers.keygen_controller import KeygenController
         ctrl = KeygenController()
         result = ctrl.generate("alice", tmp_path)
         assert result.protected is False
 
     def test_generated_protected_key_is_loadable(self, tmp_path: Path) -> None:
-        from src.controllers.keygen_controller import KeygenController
+        from pqhe.controllers.keygen_controller import KeygenController
         ctrl = KeygenController()
         result = ctrl.generate("alice", tmp_path, passphrase="mypassword")
         storage = KeyStorage(tmp_path)

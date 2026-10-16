@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rich.table import Table
 
-from src.controllers.status_controller import StatusController
+from pqhe.controllers.status_controller import StatusController
 
 
 @pytest.mark.unit
@@ -40,14 +40,14 @@ class TestStatusController:
     def test_python_version_row_present(self) -> None:
         ctrl = StatusController()
         result = ctrl.get_status()
-        # Row count includes: Python + 5 packages + 2 KEM rows = 8 minimum
-        assert result.row_count >= 8
+        # Row count includes: Python + 5 packages + 1 KEM row = 7 minimum
+        assert result.row_count >= 7
 
-    def test_kem_status_pyoqs_missing(self) -> None:
+    def test_kem_status_liboqs_missing(self) -> None:
         ctrl = StatusController()
-        label, status_text, detail = ctrl._kem_status("Kyber768")
-        # When pyoqs not installed, status should indicate missing
-        assert "missing" in str(status_text).lower() or "pyoqs" in detail.lower()
+        label, status_text, detail = ctrl._kem_status("ML-KEM-768")
+        # When liboqs-python not installed, status should indicate missing
+        assert "missing" in str(status_text).lower() or "liboqs" in detail.lower()
 
     def test_kem_status_returns_tuple_of_three(self) -> None:
         ctrl = StatusController()
@@ -56,21 +56,21 @@ class TestStatusController:
 
     def test_kem_status_when_oqs_available_and_kem_enabled(self) -> None:
         mock_oqs = MagicMock()
-        mock_oqs.get_enabled_KEM_mechanisms.return_value = ["Kyber768", "ML-KEM-768"]
+        mock_oqs.get_enabled_kem_mechanisms.return_value = ["ML-KEM-768"]
 
         ctrl = StatusController()
         with patch.dict("sys.modules", {"oqs": mock_oqs}):
-            label, status_text, detail = ctrl._kem_status("Kyber768")
+            label, status_text, detail = ctrl._kem_status("ML-KEM-768")
 
-        assert "Kyber768" in label
+        assert "ML-KEM-768" in label
         assert "available" in str(status_text).lower()
 
     def test_kem_status_when_oqs_available_but_kem_not_in_build(self) -> None:
         mock_oqs = MagicMock()
-        mock_oqs.get_enabled_KEM_mechanisms.return_value = []  # empty build
+        mock_oqs.get_enabled_kem_mechanisms.return_value = []  # empty build
 
         ctrl = StatusController()
         with patch.dict("sys.modules", {"oqs": mock_oqs}):
-            label, status_text, detail = ctrl._kem_status("Kyber768")
+            label, status_text, detail = ctrl._kem_status("ML-KEM-768")
 
         assert "unavailable" in str(status_text).lower() or "not in" in detail.lower()
