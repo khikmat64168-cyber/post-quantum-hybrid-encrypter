@@ -9,6 +9,19 @@
 [![Coverage](https://img.shields.io/badge/coverage-90%25-success.svg)](#testing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
+> [!WARNING]
+> **Keys generated before the ML-KEM fix are X25519-only — regenerate them for post-quantum protection.**
+> Earlier versions called a non-existent liboqs function, so ML-KEM-768 was never enabled and `pqhe keygen`
+> silently produced classical keys only. Check your keys directory: if a user has no `<name>_mlkem_public.json`,
+> their files are **not** quantum-resistant. Decrypt anything you still need, then run
+> `pqhe keygen --name <name>` again (this may overwrite the old key files).
+
+> [!TIP]
+> **Install notes**
+> - If `pip` is not found, use `python3 -m pip install -e ".[pq]"` instead.
+> - The package was renamed from `src` to `pqhe`: run `pqhe ...` or `python3 -m pqhe.main ...` (not `python3 -m src.main`).
+> - Confirm the post-quantum layer is active with `pqhe status` → `KEM: ML-KEM-768 ✓ available`.
+
 ---
 
 ## What is PQ-HE?
